@@ -1,18 +1,11 @@
 package com.imove.voipdemo.audioManager;
-
-import android.media.AudioManager;
 import android.media.MediaPlayer;
-import android.net.LocalServerSocket;
 import android.net.LocalSocket;
-import android.net.LocalSocketAddress;
 import android.util.Log;
-
-import org.apache.http.protocol.HttpService;
-
+import com.imove.voipdemo.config.CommonConfig;
 import java.io.File;
-import java.io.FileDescriptor;
 import java.io.IOException;
-import java.net.Socket;
+
 
 /**
  * Created by zhangyun on 14/11/27.
@@ -21,7 +14,6 @@ public class MediaPlayManager {
     String datasource;
     MediaPlayer mediaPlayer;
     LocalSocket receiver;
-    FileDescriptor sockfd;
 
     public MediaPlayManager(String mdatasource)
     {
@@ -68,45 +60,11 @@ public class MediaPlayManager {
         return;
     }
 
-    public boolean isPlaying()
-    {
-        return mediaPlayer.isPlaying();
-    }
-
-
-    public LocalSocket GetLocalSocketForPlay()
-    {
-        int buffersize = 5000;
-        LocalSocket sender=null;
-        try
-        {
-            LocalServerSocket lss = new LocalServerSocket("play");
-            receiver.connect(new LocalSocketAddress("play"));
-            receiver.setReceiveBufferSize(buffersize);
-            receiver.setSendBufferSize(buffersize);
-            sender = lss.accept();
-            // Log.i("", "sender filefd:" + sender.getFileDescriptor());
-            sender.setReceiveBufferSize(buffersize);
-            sender.setSendBufferSize(buffersize);
-
-        } catch (IOException e1)
-        {
-            e1.printStackTrace();
-            Log.e("", "localSocket error:" + e1.getMessage());
-        }
-        return sender;
-    }
-
-    public LocalSocket getReceiver()
-    {
-        return receiver;
-    }
 
     public void StartPlay() {
-        MediaPlayManager mediaPlayManager=null;
-        final File mfile=new File("/sdcard/test.mp4");
-        mediaPlayManager=new MediaPlayManager("/sdcard/test.mp4");
+        final File mfile=new File(CommonConfig.FILEPATH);
         try {
+            mfile.delete();
             mfile.createNewFile();
         }
         catch (Exception e)

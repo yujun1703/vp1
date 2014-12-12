@@ -121,9 +121,6 @@ public class ChatFragment extends Fragment {
             public void onClick(View v)
             {
                 Log.d("aa","doInbackground:"+Thread.currentThread().getId());
-                String filepath="/sdcard/";
-                String filename="aaa.mp4";
-               // mFdManager.SetFilePath(filepath,filename);
 
                 mRecorderManager.recorder(mFdManager.GetStreamSocket());
 
@@ -131,9 +128,6 @@ public class ChatFragment extends Fragment {
                 ss.setLocalSocket(mFdManager.getReceiver());
 
                 ss.SendAudioToServer();
-
-               //  mFdManager.SendToServer();
-               //  mFdManager.ReceiveFromServer();
 
             }
         });
@@ -211,24 +205,7 @@ public class ChatFragment extends Fragment {
         @Override
         protected Boolean doInBackground(Void... params) {
             Log.d("aa","doInbackground:"+Thread.currentThread().getId());
-            /*
-            String filepath="/sdcard/";
-            String filename="aaa.mp4";
 
-
-
-            mRecorderManager.recorder(mFdManager.GetStreamSocket());
-
-
-
-            mFdManager.SendToServer();
-            mFdManager.ReceiveFromServer();
-
-            MediaPlayManager mediaPlayManager=new MediaPlayManager(mFdManager.GetFilePath());
-            mediaPlayManager.mediaPlay();
-
-           // mRecorderManager.recorder(mFdManager.GetFileFd(filepath,filename));
-            */
             return true;
         }
 

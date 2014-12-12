@@ -4,8 +4,8 @@ import android.net.LocalSocket;
 import android.os.Handler;
 import android.util.Log;
 import android.widget.ArrayAdapter;
-import android.widget.ListAdapter;
 
+import com.imove.voipdemo.config.CommonConfig;
 import com.imove.voipdemo.dummy.DummyContent;
 
 import java.io.BufferedInputStream;
@@ -13,14 +13,12 @@ import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.ArrayList;
 
 /**
  * Created by zhangyun on 14/12/10.
@@ -97,7 +95,6 @@ public class ServerSocket {
 
                             //长度为8(atom长度)
                             dos.writeInt(0x08000000);
-
                             dos.writeByte(sendnum & 0xff);
                             dos.writeByte((sendnum & 0xff00) >> 8);
 
@@ -285,28 +282,13 @@ public class ServerSocket {
                     BufferedInputStream bis = new BufferedInputStream(is);
                     DataInputStream dis = new DataInputStream(bis);
 
-                    // final InputStream mInputStream = mSocket.getInputStream();
-                    File file=new File("/sdcard/test.mp4");
-                    //File file=new File(mPath+mName);
-                    //file.createNewFile();
+                    File file=new File(CommonConfig.FILEPATH);
                     FileOutputStream os = new FileOutputStream(file);
 
-                    //  MediaPlayManager mediaPlayManager=new MediaPlayManager(file.getPath());
-                    //  mediaPlayManager.mediaPlay();
-
                     byte[] body = new byte[buffersize];
-                    byte[] header = new byte[32];
                     int bufferread;
-                    int savelen=0;
-                    boolean isStart=false;
 
-                    /*
-                    MediaPlayManager mediaPlayManager=null;
-                    mediaPlayManager=new MediaPlayManager("/sdcard/test.mp4");
-                    LocalSocket SenderbufferSocket=mediaPlayManager.GetLocalSocketForPlay();
-                    //FileOutputStream fo=new FileOutputStream(sockfd);
-                    OutputStream OsForPlayer= SenderbufferSocket.getOutputStream();
-                    */
+
 
                     while(true) {
                         int retcode=0;
@@ -352,38 +334,14 @@ public class ServerSocket {
                                 length-=20;
                                 dis.skipBytes(20);
 
-                             //   MediaPlayManager mediaPlayManager=new MediaPlayManager("/sdcard/test.mp4");
-                            //    mediaPlayManager.mediaPlay();
-
-                              //  mediaPlayManager=new MediaPlayManager("/sdcard/test.mp4");
-                               // FileDescriptor sockfd=mediaPlayManager.GetStreamSocket();
-                              //  mediaPlayManager.mediaPlay();
-                              //  Log.i(TAG, "begin to play");
-
 
                                 while (true) {
                                     if ((bufferread = dis.read(body, 0, length)) > 0) {
                                         os.write(body, 0, bufferread);
                                         os.flush();
 
-                                       // OsForPlayer.write(body, 0, bufferread);
 
-                                        savelen=savelen+bufferread;
-                                        Log.i(TAG, "SaveStream:" + bufferread + ",savelen:" + savelen);
-/*
-                                        if(savelen>5000 && (mediaPlayManager.isPlaying()==false) && (isStart==false))
-                                        {
 
-                                             //mediaPlayManager=new MediaPlayManager("/sdcard/test.mp4");
-                                             mediaPlayManager.mediaPlay();
-                                            //Log.i(TAG, "begin to play");
-
-                                            Log.i(TAG, "begin to play");
-                                            isStart=true;
-                                           // mediaPlayManager.mediaPlay();
-
-                                        }
-*/
                                         if (bufferread < length)
                                             length -= bufferread;
                                         else

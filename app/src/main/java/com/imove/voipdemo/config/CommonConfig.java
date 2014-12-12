@@ -5,4 +5,7 @@ public class CommonConfig {
 
 	public static final int AUDIO_SERVER_UP_PORT = 8803;
 	public static final int AUDIO_SERVER_DOWN_PORT = 8804;
+
+    public static final String FILEPATH="/sdcard/test.mp4";
+
 }

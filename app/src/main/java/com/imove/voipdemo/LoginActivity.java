@@ -31,6 +31,7 @@ import android.util.Base64;
 
 import com.imove.voipdemo.audioManager.MediaPlayManager;
 import com.imove.voipdemo.audioManager.ServerSocket;
+import com.imove.voipdemo.config.CommonConfig;
 
 import org.apache.commons.logging.Log;
 
@@ -332,12 +333,9 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor>{
             mServerSocket.ReceiveFromServer();
             mServerSocket.GetUserList();
 
-            MediaPlayManager mediaPlayManager=new MediaPlayManager("/sdcard/test.mp4");
+            MediaPlayManager mediaPlayManager=new MediaPlayManager(CommonConfig.FILEPATH);
             mediaPlayManager.StartPlay();
 
-
-           // MediaPlayManager mediaPlayManager=new MediaPlayManager("/sdcard/test.mp4");
-           // mediaPlayManager.mediaPlay();
 
             for (String credential : DUMMY_CREDENTIALS) {
                 String[] pieces = credential.split(":");
