@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="implayer">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/libs/implayer.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
