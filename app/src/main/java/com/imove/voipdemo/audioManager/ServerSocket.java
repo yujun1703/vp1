@@ -17,8 +17,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PipedOutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import android.os.MemoryFile;
 
 /**
  * Created by zhangyun on 14/12/10.
@@ -32,10 +34,10 @@ public class ServerSocket {
     private LocalSocket mLocalSocket;
     private ArrayAdapter mArrayAdapter;
     private Handler mUIHandler;
-
+    private MemoryFile mMemoryFile=null;
     int sendnum=0;
     final int buffersize=5000;
-
+    private PipedOutputStream pipedOutputStream=null;
    // private ArrayList<int> iplist;
 
     private static ServerSocket mServerSocket=null;
@@ -47,6 +49,10 @@ public class ServerSocket {
         mSocket = new Socket();
     }
 
+    public void SetPiedOutPutStream(PipedOutputStream out)
+    {
+        pipedOutputStream=out;
+    }
 
     public synchronized static ServerSocket getServerSocketInstance()
     {
@@ -81,11 +87,13 @@ public class ServerSocket {
     {
         new Thread() {
             public void run() {
-               // Log.d("aa","GetUserList:"+Thread.currentThread().getId());
+
                 try {
                     OutputStream os = null;
                     while(true) {
+
                         if (mSocket.isConnected() == true) {
+
                             os = mSocket.getOutputStream();
                             BufferedOutputStream bos = new BufferedOutputStream(os);
                             DataOutputStream dos = new DataOutputStream(bos);
@@ -106,6 +114,8 @@ public class ServerSocket {
                             dos.writeInt(0x0);//STAT len =2
                             //dos.writeShort(0x0100);
                             dos.flush();
+                            Log.d("aa","GetUserList,seq:"+sendnum);
+
                             sendnum++;
                             Thread.sleep(3000);
                         }
@@ -240,10 +250,15 @@ public class ServerSocket {
                         dos.write(buffer,0,bufferReadResult);
 
                         sendlen+=bufferReadResult;
+                        dos.flush();
+                        Log.i(TAG, "SendToServer,time:" +System.currentTimeMillis() + ",seq:"+sendnum);
+
+                        /*
                         if(sendlen>1000) {
                             dos.flush();
                             sendlen=0;
                         }
+                        */
                         sendnum++;
                         Log.i("aa","has sended");
 
@@ -282,8 +297,11 @@ public class ServerSocket {
                     BufferedInputStream bis = new BufferedInputStream(is);
                     DataInputStream dis = new DataInputStream(bis);
 
-                    File file=new File(CommonConfig.FILEPATH);
-                    FileOutputStream os = new FileOutputStream(file);
+                   // File file=new File(CommonConfig.FILEPATH);
+                    //FileOutputStream os = new FileOutputStream(file);
+
+                    //MemoryFile memoryFile=new MemoryFile(CommonConfig.MEMORYFILE,1000000);
+                   // OutputStream os=mMemoryFile.getOutputStream();
 
                     byte[] body = new byte[buffersize];
                     int bufferread;
@@ -326,7 +344,8 @@ public class ServerSocket {
                                 retcode+=dis.readByte()&0xff;
                                 retcode+=(dis.readByte()&0xff)<<8;
 
-                                Log.i(TAG, "length :" + Integer.toHexString(length)+",seq:"+seq+",retcode:"+retcode);
+                               // Log.i(TAG, "length :" + Integer.toHexString(length)+",seq:"+seq+",retcode:"+retcode);
+                                Log.i(TAG, "RespFromServer,time:" +System.currentTimeMillis() + ",seq:"+seq +",length :" + Integer.toString(length));
 
                                 if(retcode==1)
                                     break;
@@ -334,13 +353,10 @@ public class ServerSocket {
                                 length-=20;
                                 dis.skipBytes(20);
 
-
                                 while (true) {
                                     if ((bufferread = dis.read(body, 0, length)) > 0) {
-                                        os.write(body, 0, bufferread);
-                                        os.flush();
-
-
+                                        pipedOutputStream.write(body, 0, bufferread);
+                                        pipedOutputStream.flush();
 
                                         if (bufferread < length)
                                             length -= bufferread;
@@ -359,7 +375,7 @@ public class ServerSocket {
                                 break;
 
                             case 0x494d0180:
-                             //   Log.i(TAG, "resp ip list xxxxxx");
+
                                 length+=dis.readByte()&0xff;
                                 length+=(dis.readByte()<<8)&0xff00;
                                 length+=(dis.readByte()<<16)&0xff0000;
@@ -367,7 +383,7 @@ public class ServerSocket {
                                 //length-=20
                                 seq+=dis.readByte()&0xff;
                                 seq+=(dis.readByte()&0xff)<<8;
-
+                                Log.i(TAG, "resp ip list xxxxxx,seq:"+seq);
                                 retcode+=dis.readByte()&0xff;
                                 retcode+=(dis.readByte()&0xff)<<8;
 

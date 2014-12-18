@@ -15,6 +15,7 @@ import android.os.AsyncTask;
 
 import android.os.Build;
 import android.os.Bundle;
+import android.os.MemoryFile;
 import android.provider.ContactsContract;
 import android.text.TextUtils;
 import android.view.KeyEvent;
@@ -27,14 +28,18 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.util.Base64;
+import android.os.MemoryFile;
 
-
+import com.imove.voipdemo.audioManager.AudioPlayer;
 import com.imove.voipdemo.audioManager.MediaPlayManager;
 import com.imove.voipdemo.audioManager.ServerSocket;
 import com.imove.voipdemo.config.CommonConfig;
 
 import org.apache.commons.logging.Log;
 
+import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -333,8 +338,42 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor>{
             mServerSocket.ReceiveFromServer();
             mServerSocket.GetUserList();
 
-            MediaPlayManager mediaPlayManager=new MediaPlayManager(CommonConfig.FILEPATH);
-            mediaPlayManager.StartPlay();
+
+            /*
+
+            //ServerSocket ss=ServerSocket.getServerSocketInstance();
+            try{
+                MemoryFile memoryFile=new MemoryFile(CommonConfig.MEMORYFILE,1000000);
+                mServerSocket.SetMemoryFile(memoryFile);
+               // mServerSocket.SetMemoryFile(memoryFile);
+                InputStream is=memoryFile.getInputStream();
+                AudioPlayer audioPlayer=new AudioPlayer(is);
+                audioPlayer.StartPlay();
+            } catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+*/
+
+            PipedInputStream in = new PipedInputStream(); //receive
+            PipedOutputStream out = new PipedOutputStream();//sender
+            try
+            {
+                out.connect(in);
+            }
+            catch(IOException e)
+            {
+                e.printStackTrace();
+            }
+            mServerSocket.SetPiedOutPutStream(out);
+
+            AudioPlayer audioPlayer=new AudioPlayer(in);
+            audioPlayer.StartPlay();
+
+
+            // MediaPlayManager mediaPlayManager=new MediaPlayManager(CommonConfig.FILEPATH);
+            //mediaPlayManager.StartPlay();
+
 
 
             for (String credential : DUMMY_CREDENTIALS) {

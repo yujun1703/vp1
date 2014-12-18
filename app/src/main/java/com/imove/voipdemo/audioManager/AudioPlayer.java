@@ -1,8 +1,13 @@
 package com.imove.voipdemo.audioManager;
+import android.os.MemoryFile;
 import android.util.Log;
 import com.imove.voipdemo.config.CommonConfig;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PipedInputStream;
+
 
 import com.spoledge.aacdecoder.AACPlayer;
 
@@ -10,34 +15,26 @@ import com.spoledge.aacdecoder.AACPlayer;
  * Created by zhangyun on 14/11/27.
  */
 public class AudioPlayer {
+    InputStream inputStream;
+
+    public  AudioPlayer(PipedInputStream is)
+    {
+        inputStream=is;
+    }
+
     public void StartPlay() {
-        final File mfile=new File(CommonConfig.FILEPATH);
+
         try {
-            mfile.delete();
-            mfile.createNewFile();
-            final FileInputStream fis = new FileInputStream(mfile);
             new Thread() {
                 public void run() {
                     try {
-                        AACPlayer aacPlayer = new AACPlayer();
+                        AACPlayer aacPlayer = new AACPlayer(null ,10,300);
+                        aacPlayer.play(inputStream,CommonConfig.AUDIO_BITRATE);
 
-
-                        while (true) {
-                            if (mfile.length() > 2000) {
-                              aacPlayer.play(fis);
-                                break;
-                            } else {
-                                try {
-                                    Thread.sleep(1000);
-                                    Log.e("", "StartPlay sleep");
-                               } catch (Exception e) {
-                                    Log.e("", "StartPlay sleep error");
-                                }
-                            }
-                        }
                     }
                     catch (Exception e) {
                         Log.e("", "StartPlay sleep error");
+                        e.printStackTrace();
                     }
                 }
             }.start();

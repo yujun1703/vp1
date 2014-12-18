@@ -146,8 +146,7 @@ public class ChatFragment extends Fragment {
         mPlayBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MediaPlayManager mediaPlayManager=new MediaPlayManager(mFdManager.GetFilePath());
-                mediaPlayManager.mediaPlay();
+
             }
         });
         return view;

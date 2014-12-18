@@ -8,4 +8,7 @@ public class CommonConfig {
 
     public static final String FILEPATH="/sdcard/test.mp4";
 
+    public static final String MEMORYFILE="AUDIOFILE";
+    public static final int AUDIO_BITRATE=32;
+
 }
