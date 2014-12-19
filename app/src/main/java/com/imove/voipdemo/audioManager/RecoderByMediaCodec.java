@@ -4,6 +4,7 @@ import android.media.AudioRecord;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
+import android.media.MediaMuxer;
 import android.media.MediaRecorder;
 import android.os.Environment;
 import android.util.Log;
@@ -13,61 +14,105 @@ import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
-
 
 /**
  * Created by zhangyun on 14/12/18.
  */
 public class RecoderByMediaCodec {
-
     private MediaCodec mediaCodec;
     private BufferedOutputStream outputStream;
     private String mediaType = "audio/mp4a-latm";
+    private long  timestamps=0;
+    private long  starttimestamps=0;
 
+    private File file;
+    private FileOutputStream fos;
+
+    ByteBuffer[] inputBuffers ;
+    ByteBuffer[] outputBuffers;
 
     public RecoderByMediaCodec(FileDescriptor fileDescriptor) {
-
-       // File f = new File(Environment.getExternalStorageDirectory(), "Download/audio_encoded.aac");
+       file = new File("/sdcard/", "audio_encoded.amr");
 
         try {
             outputStream = new BufferedOutputStream(new FileOutputStream(fileDescriptor));
+            fos=new FileOutputStream(file);
 
             Log.d("AudioEncoder", "outputStream initialized");
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        mediaCodec = MediaCodec.createEncoderByType(mediaType);
-        final int kSampleRates[] = {8000, 11025, 22050, 44100, 48000};
-        final int kBitRates[] = {64000, 128000};
-        MediaFormat mediaFormat = MediaFormat.createAudioFormat(mediaType, kSampleRates[3], 1);
-        mediaFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectHE);
-        Log.d("AudioEncoder", "aaaa");
-        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, kBitRates[0]);
-        Log.d("AudioEncoder", "bbbb");
-        mediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-        Log.d("AudioEncoder", "cccc");
-        mediaCodec.start();
-        Log.d("AudioEncoder", "dddd");
-    }
+        int sampleRateInHz = 44100;
+        int channelConfig = AudioFormat.CHANNEL_IN_MONO;
+        int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
+        int bufferSizeInBytes = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat)*2;
 
+
+        mediaCodec = MediaCodec.createEncoderByType(mediaType);
+        MediaFormat mediaFormat = new MediaFormat();
+
+        mediaFormat.setString(MediaFormat.KEY_MIME, mediaType);
+        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, 16*1024);
+        mediaFormat.setInteger(MediaFormat.KEY_CHANNEL_COUNT, 1);
+        mediaFormat.setInteger(MediaFormat.KEY_SAMPLE_RATE, 44100);
+        mediaFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
+        mediaFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, bufferSizeInBytes);
+        mediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+        mediaCodec.start();
+
+        inputBuffers = mediaCodec.getInputBuffers();
+        outputBuffers = mediaCodec.getOutputBuffers();
+    }
+/*
+    public void prepare(FileDescriptor fileDescriptor)
+    {
+        file = new File("/sdcard/", "audio_encoded.amr");
+
+        try {
+            outputStream = new BufferedOutputStream(new FileOutputStream(fileDescriptor));
+            fos=new FileOutputStream(file);
+
+            Log.d("AudioEncoder", "outputStream initialized");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        int sampleRateInHz = 44100;
+        int channelConfig = AudioFormat.CHANNEL_IN_MONO;
+        int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
+        int bufferSizeInBytes = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat)*2;
+
+        mediaCodec = MediaCodec.createEncoderByType(mediaType);
+        MediaFormat mediaFormat = new MediaFormat();
+
+        mediaFormat.setString(MediaFormat.KEY_MIME, mediaType);
+        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, 16*1024);
+        mediaFormat.setInteger(MediaFormat.KEY_CHANNEL_COUNT, 1);
+        mediaFormat.setInteger(MediaFormat.KEY_SAMPLE_RATE, 44100);
+        mediaFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
+        mediaFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, bufferSizeInBytes);
+        mediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+    }
+*/
 
     public void startRecord()
     {
-       // audioRecord.read(Data, 0, Data.length);
-      //  audioEncoder.offerEncoder(Data);
-
         new Thread() {
             public void run() {
                 int audioSource = MediaRecorder.AudioSource.MIC;
                 int sampleRateInHz = 44100;
                 int channelConfig = AudioFormat.CHANNEL_IN_MONO;
                 int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
-                int bufferSizeInBytes = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat);
+                int bufferSizeInBytes = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat)*2;
 
                 AudioRecord audioRecord = new AudioRecord(audioSource, sampleRateInHz, channelConfig, audioFormat, bufferSizeInBytes);
+
                 audioRecord.startRecording();
+                starttimestamps=System.nanoTime() ;
+                //audioRecord.setRecordPositionUpdateListener();
 
                 Log.d("AudioEncoder","new byte:"+ bufferSizeInBytes );
 
@@ -79,56 +124,65 @@ public class RecoderByMediaCodec {
                 }
             }
         }.start();
-
-
-
     }
 
-    public void close() {
+    public void stopRecorder() {
         try {
             mediaCodec.stop();
             mediaCodec.release();
             outputStream.flush();
-            outputStream.close();
+          //  outputStream.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+
     // called AudioRecord's read
     public synchronized void offerEncoder(byte[] input,int length) {
         Log.d("AudioEncoder", length + " is coming");
 
+
         try {
-            ByteBuffer[] inputBuffers = mediaCodec.getInputBuffers();
-            ByteBuffer[] outputBuffers = mediaCodec.getOutputBuffers();
+
             int inputBufferIndex = mediaCodec.dequeueInputBuffer(-1);
             if (inputBufferIndex >= 0) {
                 ByteBuffer inputBuffer = inputBuffers[inputBufferIndex];
                 inputBuffer.clear();
-
                 inputBuffer.put(input);
-
-
-                mediaCodec.queueInputBuffer(inputBufferIndex, 0, length, 0, 0);
+                timestamps = System.nanoTime() - starttimestamps;
+                Log.d("AudioEncoder", "timestamps:" + timestamps);
+                mediaCodec.queueInputBuffer(inputBufferIndex, 0, length, timestamps, 0);
             }
 
             MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
             int outputBufferIndex = mediaCodec.dequeueOutputBuffer(bufferInfo, 0);
 
-
 //Without ADTS header
-            while (outputBufferIndex >= 0) {
-                ByteBuffer outputBuffer = outputBuffers[outputBufferIndex];
-                byte[] outData = new byte[bufferInfo.size];
-                outputBuffer.get(outData);
-                outputStream.write(outData, 0, outData.length);
-                Log.e("AudioEncoder", outData.length + " bytes written");
+            if(outputBufferIndex >= 0) {
+                while (outputBufferIndex >= 0) {
+                    ByteBuffer outputBuffer = outputBuffers[outputBufferIndex];
+                    byte[] outData = new byte[bufferInfo.size];
+                    outputBuffer.get(outData);
+                    // outputStream.write(outData, 0, outData.length);
+                    //  outputStream.flush();
 
-                mediaCodec.releaseOutputBuffer(outputBufferIndex, false);
-                outputBufferIndex = mediaCodec.dequeueOutputBuffer(bufferInfo, 0);
+                    fos.write(outData, 0, outData.length);
+                    //fos.flush();
+                    Log.e("AudioEncoder", outData.length + " bytes written");
 
+                    mediaCodec.releaseOutputBuffer(outputBufferIndex, false);
+                    outputBufferIndex = mediaCodec.dequeueOutputBuffer(bufferInfo, 0);
+
+                }
+            }else if (outputBufferIndex == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
+                Log.e("AudioEncoder", "INFO_OUTPUT_BUFFERS_CHANGED");
             }
+             else if (outputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                Log.e("AudioEncoder", "INFO_OUTPUT_FORMAT_CHANGED");
+             }
+
+           // outputStream.flush();
         } catch (Throwable t) {
             t.printStackTrace();
         }

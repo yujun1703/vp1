@@ -189,6 +189,7 @@ public class ServerSocket {
     {
         mPeerIp=ip;
     }
+
     public void SendAudioToServer() {
         new Thread() {
             public void run() {
@@ -209,7 +210,7 @@ public class ServerSocket {
                     byte[] header = new byte[32];
                     int sendlen=0;
 
-                    while ((bufferReadResult = stream.read(buffer, 0, buffersize)) > 0) {
+                    while ((bufferReadResult = stream.read(buffer, 0, buffersize)) != -1 ) {
                         Log.i(TAG, "SendToServer,buflen:" +bufferReadResult + ",seq:"+sendnum);
 
                         int bodylen=bufferReadResult+20;
@@ -377,10 +378,8 @@ public class ServerSocket {
                                 break;
                             case 0x494d0600:
                                 break;
-
                             case 0x494d0700:
                                 break;
-
                             case 0x494d0180:
 
                                 length+=dis.readByte()&0xff;

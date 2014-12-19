@@ -53,6 +53,7 @@ public class RecorderManager {
         }
         catch (Exception e)
         {
+            Log.i(TAG, "RecorderManager error");
             // TODO: handle exception
             e.printStackTrace();
             return false;

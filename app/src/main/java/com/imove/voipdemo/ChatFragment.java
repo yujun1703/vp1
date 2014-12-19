@@ -144,7 +144,9 @@ public class ChatFragment extends Fragment {
         mStopBtn.setOnClickListener(new View.OnClickListener(){
                 public void onClick(View v)
                 {
-                    mRecorderManager.stopRecorder();
+                    recoderByMediaCodec.stopRecorder();
+                    //mRecorderManager.stopRecorder();
+
                 }
             }
         );
