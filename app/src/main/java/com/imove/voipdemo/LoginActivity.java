@@ -30,6 +30,7 @@ import android.widget.TextView;
 import android.util.Base64;
 import android.os.MemoryFile;
 
+import com.imove.voipdemo.audioManager.AudioDecoderPlayer;
 import com.imove.voipdemo.audioManager.AudioPlayer;
 import com.imove.voipdemo.audioManager.MediaPlayManager;
 import com.imove.voipdemo.audioManager.ServerSocket;
@@ -37,6 +38,8 @@ import com.imove.voipdemo.config.CommonConfig;
 
 import org.apache.commons.logging.Log;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
@@ -355,8 +358,10 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor>{
             }
 */
 
-            PipedInputStream in = new PipedInputStream(); //receive
+            PipedInputStream in = new PipedInputStream(8096); //receive
             PipedOutputStream out = new PipedOutputStream();//sender
+
+
             try
             {
                 out.connect(in);
@@ -365,16 +370,22 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor>{
             {
                 e.printStackTrace();
             }
-            mServerSocket.SetPiedOutPutStream(out);
+            BufferedOutputStream bos = new BufferedOutputStream(out);
 
-            AudioPlayer audioPlayer=new AudioPlayer(in);
-            audioPlayer.StartPlay();
+            mServerSocket.SetPiedOutPutStream(bos);
+            BufferedInputStream bis=new BufferedInputStream(in);
+            //BufferedInputStream bis=new BufferedInputStream(in);
+
+          //  AudioPlayer audioPlayer=new AudioPlayer(bis);
+      //      audioPlayer.StartPlay();
 
 
             // MediaPlayManager mediaPlayManager=new MediaPlayManager(CommonConfig.FILEPATH);
             //mediaPlayManager.StartPlay();
 
-
+            //AudioDecoderPlayer audioPlayer=new AudioDecoderPlayer(bis);
+            AudioDecoderPlayer audioPlayer=new AudioDecoderPlayer(in);
+            audioPlayer.StartPlay();
 
             for (String credential : DUMMY_CREDENTIALS) {
                 String[] pieces = credential.split(":");

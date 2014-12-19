@@ -1,5 +1,11 @@
 package com.imove.voipdemo.config;
 
+import android.media.AudioFormat;
+import android.media.MediaRecorder;
+
+
+import java.io.FileOutputStream;
+
 public class CommonConfig {
 	public static String SERVER_IP_ADDRESS = "172.16.2.60";
 
@@ -10,5 +16,14 @@ public class CommonConfig {
 
     public static final String MEMORYFILE="AUDIOFILE";
     public static final int AUDIO_BITRATE=32;
+
+
+
+
+    public static final int audioSource = MediaRecorder.AudioSource.MIC;
+    public static final int sampleRateInHz = 44100;
+
+    public static final int channelConfig= AudioFormat.CHANNEL_IN_MONO;
+    public static final int audioFormat= AudioFormat.ENCODING_PCM_16BIT;
 
 }

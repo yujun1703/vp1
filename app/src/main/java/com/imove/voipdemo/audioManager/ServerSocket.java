@@ -20,6 +20,8 @@ import java.io.OutputStream;
 import java.io.PipedOutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.concurrent.BlockingDeque;
+
 import android.os.MemoryFile;
 
 /**
@@ -37,7 +39,7 @@ public class ServerSocket {
     private MemoryFile mMemoryFile=null;
     int sendnum=0;
     final int buffersize=5000;
-    private PipedOutputStream pipedOutputStream=null;
+    private BufferedOutputStream pipedOutputStream=null;
    // private ArrayList<int> iplist;
 
     private static ServerSocket mServerSocket=null;
@@ -49,7 +51,7 @@ public class ServerSocket {
         mSocket = new Socket();
     }
 
-    public void SetPiedOutPutStream(PipedOutputStream out)
+    public void SetPiedOutPutStream(BufferedOutputStream out)
     {
         pipedOutputStream=out;
     }
@@ -114,7 +116,8 @@ public class ServerSocket {
                             dos.writeInt(0x0);//STAT len =2
                             //dos.writeShort(0x0100);
                             dos.flush();
-                            Log.d("aa","GetUserList,seq:"+sendnum);
+
+                        //    Log.i(TAG, "GetUserList list xxxxxx,seq:"+sendnum+",time:" +System.currentTimeMillis());
 
                             sendnum++;
                             Thread.sleep(3000);
@@ -345,18 +348,22 @@ public class ServerSocket {
                                 retcode+=(dis.readByte()&0xff)<<8;
 
                                // Log.i(TAG, "length :" + Integer.toHexString(length)+",seq:"+seq+",retcode:"+retcode);
-                                Log.i(TAG, "RespFromServer,time:" +System.currentTimeMillis() + ",seq:"+seq +",length :" + Integer.toString(length));
+                                Log.i(TAG, "RespFromServer,time:" + System.currentTimeMillis() + ",seq:" + seq + ",length :" + Integer.toString(length));
 
                                 if(retcode==1)
                                     break;
+
 
                                 length-=20;
                                 dis.skipBytes(20);
 
                                 while (true) {
                                     if ((bufferread = dis.read(body, 0, length)) > 0) {
+
                                         pipedOutputStream.write(body, 0, bufferread);
                                         pipedOutputStream.flush();
+                                        Log.i(TAG, "RespFromServer,write to pipe,len:" +bufferread);
+
 
                                         if (bufferread < length)
                                             length -= bufferread;
@@ -383,7 +390,7 @@ public class ServerSocket {
                                 //length-=20
                                 seq+=dis.readByte()&0xff;
                                 seq+=(dis.readByte()&0xff)<<8;
-                                Log.i(TAG, "resp ip list xxxxxx,seq:"+seq);
+                               // Log.i(TAG, "resp ip list xxxxxx,seq:"+seq+",time:" +System.currentTimeMillis());
                                 retcode+=dis.readByte()&0xff;
                                 retcode+=(dis.readByte()&0xff)<<8;
 

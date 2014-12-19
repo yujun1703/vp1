@@ -13,6 +13,7 @@ import android.widget.Button;
 
 import com.imove.voipdemo.audioManager.FdManager;
 import com.imove.voipdemo.audioManager.MediaPlayManager;
+import com.imove.voipdemo.audioManager.RecoderByMediaCodec;
 import com.imove.voipdemo.audioManager.RecorderManager;
 import com.imove.voipdemo.audioManager.ServerSocket;
 
@@ -45,6 +46,7 @@ public class ChatFragment extends Fragment {
     public Button mVoiceBtn;
     public Button mStopBtn;
     private RecorderManager mRecorderManager;
+    private RecoderByMediaCodec recoderByMediaCodec;
     private FdManager mFdManager;
     /**
      * Use this factory method to create a new instance of
@@ -64,8 +66,10 @@ public class ChatFragment extends Fragment {
         return fragment;
     }
     public ChatFragment() {
-        mRecorderManager=new RecorderManager();
+      //  mRecorderManager=new RecorderManager();
         // Required empty public constructor
+
+
 
     }
 
@@ -122,7 +126,11 @@ public class ChatFragment extends Fragment {
             {
                 Log.d("aa","doInbackground:"+Thread.currentThread().getId());
 
-                mRecorderManager.recorder(mFdManager.GetStreamSocket());
+               // mRecorderManager.recorder(mFdManager.GetStreamSocket());
+
+                recoderByMediaCodec=new RecoderByMediaCodec(mFdManager.GetStreamSocket());
+                recoderByMediaCodec.startRecord();
+
 
                 ServerSocket ss=ServerSocket.getServerSocketInstance();
                 ss.setLocalSocket(mFdManager.getReceiver());

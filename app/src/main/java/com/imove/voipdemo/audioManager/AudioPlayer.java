@@ -2,6 +2,8 @@ package com.imove.voipdemo.audioManager;
 import android.os.MemoryFile;
 import android.util.Log;
 import com.imove.voipdemo.config.CommonConfig;
+
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -17,7 +19,7 @@ import com.spoledge.aacdecoder.AACPlayer;
 public class AudioPlayer {
     InputStream inputStream;
 
-    public  AudioPlayer(PipedInputStream is)
+    public  AudioPlayer(BufferedInputStream is)
     {
         inputStream=is;
     }

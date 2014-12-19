@@ -1,6 +1,8 @@
 package com.imove.voipdemo.audioManager;
 
+import android.media.MediaCodec;
 import android.media.MediaRecorder;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import com.imove.voipdemo.config.CommonConfig;
@@ -29,11 +31,12 @@ public class RecorderManager {
             else
                 mMediaRecorder.reset();
 
+
             mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
             mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS);
 
            // Log.i(TAG, "Audio：Current container format: " + "3GP\n");
-            mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+            mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC_ELD);
             mMediaRecorder.setAudioEncodingBitRate(CommonConfig.AUDIO_BITRATE);
 
 
