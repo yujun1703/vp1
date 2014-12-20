@@ -30,7 +30,7 @@ public class AudioDecoderPlayer {
     static int sampleRateInHz = CommonConfig.sampleRateInHz;
     static int channelConfig = CommonConfig.channeloutConfig;
     static int audioFormat = CommonConfig.audioFormat;
-    static int bufferSizeInBytes = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat)*2;
+  //  static int bufferSizeInBytes = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat)*2;
     static int bitrate=CommonConfig.bitrate;
 
     static int channelCount=CommonConfig.getChannels(channelConfig);
@@ -41,7 +41,6 @@ public class AudioDecoderPlayer {
     public AudioDecoderPlayer()
     {
         Log.d("AudioDecoderPlayer", "aaaa");
-
 
         decoder = MediaCodec.createDecoderByType(CommonConfig.mediaType);
         MediaFormat format = new MediaFormat();
@@ -60,7 +59,7 @@ public class AudioDecoderPlayer {
         int bufferSizePlayer = AudioTrack.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat)*2;
         player= new AudioTrack(AudioManager.STREAM_MUSIC, sampleRateInHz, channelConfig, audioFormat, bufferSizePlayer, AudioTrack.MODE_STREAM);
 
-        Log.d("AudioDecoderPlayer", "bufferSizePlayer:"+bufferSizePlayer+",mono:"+bufferSizeInBytes);
+      //  Log.d("AudioDecoderPlayer", "bufferSizePlayer:"+bufferSizePlayer+",mono:"+bufferSizeInBytes);
      //  player= new AudioTrack(AudioManager.STREAM_MUSIC, sampleRateInHz, AudioFormat.CHANNEL_OUT_MONO, audioFormat, bufferSizePlayer, AudioTrack.MODE_STREAM);
         if (player.getState() == AudioTrack.STATE_INITIALIZED)
         {

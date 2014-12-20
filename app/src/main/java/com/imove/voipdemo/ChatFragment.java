@@ -6,16 +6,14 @@ import android.os.Bundle;
 import android.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
+
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
 import com.imove.voipdemo.audioManager.FdManager;
-import com.imove.voipdemo.audioManager.MediaPlayManager;
 import com.imove.voipdemo.audioManager.RecoderByMediaCodec;
-import com.imove.voipdemo.audioManager.RecorderManager;
-import com.imove.voipdemo.audioManager.ServerSocket;
+
 
 import java.lang.String;
 
@@ -45,7 +43,7 @@ public class ChatFragment extends Fragment {
     private OnChatFragmentInteractionListener mListener;
     public Button mVoiceBtn;
     public Button mStopBtn;
-    private RecorderManager mRecorderManager;
+
     private RecoderByMediaCodec recoderByMediaCodec;
     private FdManager mFdManager;
     /**
@@ -140,6 +138,7 @@ public class ChatFragment extends Fragment {
                 public void onClick(View v)
                 {
                     recoderByMediaCodec.stopRecorder();
+
                     //mRecorderManager.stopRecorder();
 
                 }

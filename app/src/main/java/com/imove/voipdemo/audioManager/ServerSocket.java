@@ -190,6 +190,12 @@ public class ServerSocket {
 
     public void SendAudioToServer(int bufferLen,byte[] buffer) {
         Log.i("RecoderByMediaCodec", "SendToServer,buflen:" + bufferLen );
+
+        if(mSocket.isConnected()==false)
+        {
+            ConnectHost();
+        }
+
         int bodylen = bufferLen + 20;
         try {
 
@@ -366,7 +372,9 @@ public class ServerSocket {
                                         mArrayAdapter.notifyDataSetChanged();
                                     }
                                 };
-                                mUIHandler.post(mRunnable);
+
+                                if(mUIHandler!=null)
+                                    mUIHandler.post(mRunnable);
 
                                 break;
 

@@ -27,22 +27,11 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.util.Base64;
-import android.os.MemoryFile;
 
 import com.imove.voipdemo.audioManager.AudioDecoderPlayer;
-import com.imove.voipdemo.audioManager.AudioPlayer;
-import com.imove.voipdemo.audioManager.MediaPlayManager;
+
 import com.imove.voipdemo.audioManager.ServerSocket;
-import com.imove.voipdemo.config.CommonConfig;
 
-import org.apache.commons.logging.Log;
-
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.InputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 

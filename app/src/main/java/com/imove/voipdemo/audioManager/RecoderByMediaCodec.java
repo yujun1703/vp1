@@ -35,10 +35,14 @@ public class RecoderByMediaCodec {
     static int sampleRateInHz = CommonConfig.sampleRateInHz;
     static int channelConfig = CommonConfig.channelinConfig;
     static int audioFormat = CommonConfig.audioFormat;
+
     static int bufferSizeInBytes = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat)*2;
+
 
     static int channelCount=CommonConfig.getChannels(channelConfig);
 
+    boolean isplaying;
+    AudioRecord audioRecord ;
     /*
     public RecoderByMediaCodec() {
     }
@@ -46,6 +50,7 @@ public class RecoderByMediaCodec {
 
     public void prepare()
     {
+        isplaying=true;
         mediaCodec = MediaCodec.createEncoderByType(CommonConfig.mediaType);
         MediaFormat mediaFormat = new MediaFormat();
         mediaFormat.setString(MediaFormat.KEY_MIME, CommonConfig.mediaType);
@@ -65,27 +70,41 @@ public class RecoderByMediaCodec {
         new Thread() {
             public void run() {
                 int audioSource = MediaRecorder.AudioSource.MIC;
-                AudioRecord audioRecord = new AudioRecord(audioSource, sampleRateInHz, channelConfig, audioFormat, bufferSizeInBytes);
+
+                Log.d("AudioEncoder", "CHANNEL_IN_MONO:" + AudioFormat.CHANNEL_IN_MONO+"chanconfig:"+channelConfig);
+
+                audioRecord = new AudioRecord(audioSource, sampleRateInHz, channelConfig, audioFormat, bufferSizeInBytes);
 
                 audioRecord.startRecording();
                 starttimestamps=System.nanoTime() ;
-                //audioRecord.setRecordPositionUpdateListener();
+
+                //audioRecord.setRecordPositionUpdateListener(new )
+
+
 
                 byte[] Data = new byte[bufferSizeInBytes];
                 int len;
 
-                while (true) {
+                while (isplaying) {
                     len=audioRecord.read(Data, 0, Data.length);
-                    offerEncoder(Data,len);
+                    if(len>0)
+                        offerEncoder(Data,len);
                 }
+
+
             }
         }.start();
     }
 
     public void stopRecorder() {
         try {
+            isplaying=false;
+
             mediaCodec.stop();
             mediaCodec.release();
+            audioRecord.stop();
+            audioRecord.release();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -116,7 +135,7 @@ public class RecoderByMediaCodec {
                     Log.e("AudioEncoder", outData.length + " bytes  will be  written");
                     outputBuffer.get(outData);
                     outputBuffer.clear();
-                    ServerSocket.getServerSocketInstance().SendAudioToServer(outData.length,outData);
+                    ServerSocket.getServerSocketInstance().SendAudioToServer(outData.length, outData);
 
                     mediaCodec.releaseOutputBuffer(outputBufferIndex, false);
                     outputBufferIndex = mediaCodec.dequeueOutputBuffer(bufferInfo, 0);
@@ -129,6 +148,7 @@ public class RecoderByMediaCodec {
                 Log.e("AudioEncoder", "INFO_OUTPUT_FORMAT_CHANGED");
              }
         } catch (Throwable t) {
+            Log.e("AudioEncoder", "can read from media codec");
             t.printStackTrace();
         }
 
