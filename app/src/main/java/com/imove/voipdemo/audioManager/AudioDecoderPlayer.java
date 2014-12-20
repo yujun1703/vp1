@@ -27,9 +27,6 @@ import java.nio.ByteBuffer;
  */
 public class AudioDecoderPlayer {
     MediaCodec decoder=null;
-    //InputStream inputStream;
-    PipedInputStream inputStream;
-
     static int sampleRateInHz = CommonConfig.sampleRateInHz;
     static int channelConfig = CommonConfig.channeloutConfig;
     static int audioFormat = CommonConfig.audioFormat;
@@ -41,10 +38,10 @@ public class AudioDecoderPlayer {
 
 
     AudioTrack player;
-    public AudioDecoderPlayer(PipedInputStream is)
+    public AudioDecoderPlayer()
     {
         Log.d("AudioDecoderPlayer", "aaaa");
-        inputStream=is;
+
 
         decoder = MediaCodec.createDecoderByType(CommonConfig.mediaType);
         MediaFormat format = new MediaFormat();
@@ -80,7 +77,6 @@ public class AudioDecoderPlayer {
 
     public void FeedAndPlay(byte[] data,int len)
     {
-
         ByteBuffer inputBuffer;
         ByteBuffer outputBuffer;
 

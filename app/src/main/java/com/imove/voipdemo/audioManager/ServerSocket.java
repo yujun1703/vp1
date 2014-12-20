@@ -36,26 +36,20 @@ public class ServerSocket {
     private LocalSocket mLocalSocket;
     private ArrayAdapter mArrayAdapter;
     private Handler mUIHandler;
-    private MemoryFile mMemoryFile=null;
     int sendnum=0;
     final int buffersize=5000;
-    private BufferedOutputStream pipedOutputStream=null;
+
     private  AudioDecoderPlayer mAudioDecoderPlayer;
-   // private ArrayList<int> iplist;
+    private DataOutputStream dos;
 
     private static ServerSocket mServerSocket=null;
-
-
 
     public ServerSocket()
     {
         mSocket = new Socket();
     }
 
-    public void SetPiedOutPutStream(BufferedOutputStream out)
-    {
-        pipedOutputStream=out;
-    }
+
 
     public synchronized static ServerSocket getServerSocketInstance()
     {
@@ -77,10 +71,6 @@ public class ServerSocket {
         mPort = port;
     }
 
-    public Socket GetServerSocket()
-    {
-        return mSocket;
-    }
 
     public void ConnectHost()
     {
@@ -89,6 +79,10 @@ public class ServerSocket {
 
                 try {
                     mSocket.connect(new InetSocketAddress(mIp, mPort), 5000);
+                    OutputStream os = mSocket.getOutputStream();
+                    BufferedOutputStream bos = new BufferedOutputStream(os);
+                    dos = new DataOutputStream(bos);
+
                     Log.d("aa", "ConnectHost:" + Thread.currentThread().getId());
                 } catch (IOException e) {
                     Log.e(TAG, "IOException:" + e);
@@ -103,14 +97,10 @@ public class ServerSocket {
             public void run() {
 
                 try {
-                    OutputStream os = null;
+
                     while(true) {
 
                         if (mSocket.isConnected() == true) {
-
-                            os = mSocket.getOutputStream();
-                            BufferedOutputStream bos = new BufferedOutputStream(os);
-                            DataOutputStream dos = new DataOutputStream(bos);
 
                          //   Log.i(TAG, "GetUserList,sendnum:" + sendnum);
                             dos.writeInt(0x494d0180);
@@ -153,13 +143,13 @@ public class ServerSocket {
         new Thread() {
             public void run() {
                 try {
-                    OutputStream os = null;
+
                     while (true) {
 
                         if(mSocket.isConnected()==true) {
-                            os = mSocket.getOutputStream();
-                            BufferedOutputStream bos = new BufferedOutputStream(os);
-                            DataOutputStream dos = new DataOutputStream(bos);
+
+
+
 
                             //Log.i(TAG, "KeepAliveToServer,sendnum:" + sendnum);
                             dos.writeInt(0x494d0100);
@@ -192,32 +182,16 @@ public class ServerSocket {
         }.start();
     }
 
-    public void setLocalSocket(LocalSocket receiver)
-    {
-        mLocalSocket=receiver;
-    }
-
     public void SetPeerIp(int ip)
     {
         mPeerIp=ip;
     }
 
-    public int GetPeerIp()
-    {
-        return mPeerIp;
-    }
 
     public void SendAudioToServer(int bufferLen,byte[] buffer) {
         Log.i("RecoderByMediaCodec", "SendToServer,buflen:" + bufferLen );
         int bodylen = bufferLen + 20;
-        int mPeerIp= ServerSocket.getServerSocketInstance().GetPeerIp();
-
         try {
-
-            OutputStream os = mSocket.getOutputStream();
-            BufferedOutputStream bos = new BufferedOutputStream(os);
-            DataOutputStream dos = new DataOutputStream(bos);
-
 
             dos.writeInt(0x494d0400);
 
@@ -256,100 +230,6 @@ public class ServerSocket {
         //Log.i(TAG, "SendToServer,time:" + System.currentTimeMillis() + ",seq:" + sendnum);
     }
 
-
-    @Deprecated
-    public void SendAudioToServer() {
-        new Thread() {
-            public void run() {
-                OutputStream os = null;
-                Log.d("aa","SendToServer:"+Thread.currentThread().getId());
-                try {
-                    InputStream stream = mLocalSocket.getInputStream();
-                    //    BufferedOutputStream bos = new BufferedOutputStream(os);
-
-                    byte[] buffer = new byte[buffersize];
-                    int bufferReadResult;
-
-                    // mSocket.connect(new InetSocketAddress(mIp, mPort), 5000);
-                    os = mSocket.getOutputStream();
-                    BufferedOutputStream bos = new BufferedOutputStream(os);
-                    DataOutputStream dos = new DataOutputStream(bos);
-
-                    byte[] header = new byte[32];
-                    int sendlen=0;
-
-                    while ((bufferReadResult = stream.read(buffer, 0, buffersize)) != -1 ) {
-                        Log.i(TAG, "SendToServer,buflen:" +bufferReadResult + ",seq:"+sendnum);
-
-                        int bodylen=bufferReadResult+20;
-
-                        dos.writeInt(0x494d0400);
-
-                        dos.writeByte(bodylen&0xff);
-                        dos.writeByte((bodylen & 0xff00) >> 8);
-                        dos.writeByte((bodylen & 0xff0000) >> 16);
-                        dos.writeByte((bodylen & 0xff000000) >> 24);
-
-                        dos.writeByte(sendnum & 0xff);
-                        dos.writeByte((sendnum & 0xff00) >> 8);
-
-                        dos.writeShort(0);
-
-                        dos.writeBytes("DIPS");
-                        dos.writeInt(0x04000000);//dips len =4
-
-
-                        //172.20.7.23 大htc
-                        // 172.20.7.83 小htc
-                        //ip
-                        /*
-                        dos.writeByte(172);
-                        dos.writeByte(20);
-                        dos.writeByte(7);
-                        dos.writeByte(23);
-                        */
-                        dos.writeInt(mPeerIp);
-                        Log.i("aa","mPeerIp:"+Integer.toHexString(mPeerIp));
-
-                        dos.writeBytes("MDAT");
-
-                        //dos.writeInt(bufferReadResult);
-                        dos.writeByte(bufferReadResult & 0xff);
-                        dos.writeByte((bufferReadResult & 0xff00) >> 8);
-                        dos.writeByte((bufferReadResult & 0xff0000) >> 16);
-                        dos.writeByte((bufferReadResult & 0xff000000) >> 24);
-
-                        dos.write(buffer,0,bufferReadResult);
-
-                        sendlen+=bufferReadResult;
-                        dos.flush();
-                        Log.i(TAG, "SendToServer,time:" +System.currentTimeMillis() + ",seq:"+sendnum);
-
-                        /*
-                        if(sendlen>1000) {
-                            dos.flush();
-                            sendlen=0;
-                        }
-                        */
-                        sendnum++;
-                        Log.i("aa","has sended");
-
-                    }
-
-                    Log.i(TAG, " stopped,read buff size:" + bufferReadResult);
-                    // dos.close();
-                    mSocket.close();
-
-                } catch (Exception e) {
-                    Log.e(TAG, "IOException:" + e);
-                    e.printStackTrace();
-                }
-            }
-        }.start();
-    }
-
-
-
     public void ReceiveFromServer() {
         new Thread() {
             public void run() {
@@ -368,12 +248,6 @@ public class ServerSocket {
                     is = mSocket.getInputStream();
                     BufferedInputStream bis = new BufferedInputStream(is);
                     DataInputStream dis = new DataInputStream(bis);
-
-                   // File file=new File(CommonConfig.FILEPATH);
-                    //FileOutputStream os = new FileOutputStream(file);
-
-                    //MemoryFile memoryFile=new MemoryFile(CommonConfig.MEMORYFILE,1000000);
-                   // OutputStream os=mMemoryFile.getOutputStream();
 
                     byte[] body = new byte[buffersize];
                     int bufferread;
@@ -480,7 +354,10 @@ public class ServerSocket {
                                     ip[i] = dis.readInt();
                                     Log.i(TAG, "resp ip list:" + Integer.toHexString(ip[i]));
                                     DummyContent.DummyItem item=new DummyContent.DummyItem(Integer.toString(i) ,Integer.toString(ip[i]),ip[i]);
-                                    DummyContent.addItem(item);
+
+                                    if(DummyContent.haveItem(item)==false) {
+                                        DummyContent.addItem(item);
+                                    }
                                 }
 
                                 //更新列表

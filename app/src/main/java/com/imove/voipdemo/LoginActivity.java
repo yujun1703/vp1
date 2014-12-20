@@ -341,53 +341,8 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor>{
             mServerSocket.ReceiveFromServer();
             mServerSocket.GetUserList();
 
-
-            /*
-
-            //ServerSocket ss=ServerSocket.getServerSocketInstance();
-            try{
-                MemoryFile memoryFile=new MemoryFile(CommonConfig.MEMORYFILE,1000000);
-                mServerSocket.SetMemoryFile(memoryFile);
-               // mServerSocket.SetMemoryFile(memoryFile);
-                InputStream is=memoryFile.getInputStream();
-                AudioPlayer audioPlayer=new AudioPlayer(is);
-                audioPlayer.StartPlay();
-            } catch (Exception e)
-            {
-                e.printStackTrace();
-            }
-*/
-
-            PipedInputStream in = new PipedInputStream(8096); //receive
-            PipedOutputStream out = new PipedOutputStream();//sender
-
-
-            try
-            {
-                out.connect(in);
-            }
-            catch(IOException e)
-            {
-                e.printStackTrace();
-            }
-            BufferedOutputStream bos = new BufferedOutputStream(out);
-
-            mServerSocket.SetPiedOutPutStream(bos);
-            BufferedInputStream bis=new BufferedInputStream(in);
-            //BufferedInputStream bis=new BufferedInputStream(in);
-
-          //  AudioPlayer audioPlayer=new AudioPlayer(bis);
-      //      audioPlayer.StartPlay();
-
-
-            // MediaPlayManager mediaPlayManager=new MediaPlayManager(CommonConfig.FILEPATH);
-            //mediaPlayManager.StartPlay();
-
-            //AudioDecoderPlayer audioPlayer=new AudioDecoderPlayer(bis);
-            AudioDecoderPlayer audioPlayer=new AudioDecoderPlayer(in);
+            AudioDecoderPlayer audioPlayer=new AudioDecoderPlayer();
             audioPlayer.setPlayer();
-
-            //audioPlayer.StartPlay();
 
             for (String credential : DUMMY_CREDENTIALS) {
                 String[] pieces = credential.split(":");

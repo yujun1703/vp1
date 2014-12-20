@@ -36,6 +36,11 @@ public class DummyContent {
         ITEM_MAP.put(item.id, item);
     }
 
+    public static boolean haveItem(DummyItem item)
+    {
+        return  ITEM_MAP.containsKey(item.id);
+    }
+
     public static DummyItem getItem(String id)
     {
         return ITEM_MAP.get(id);
