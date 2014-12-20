@@ -252,8 +252,6 @@ public class ServerSocket {
                     byte[] body = new byte[buffersize];
                     int bufferread;
 
-
-
                     while(true) {
                         int retcode=0;
                         int length = 0;
