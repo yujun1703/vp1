@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.net.DatagramPacket;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 
 /**
@@ -44,7 +45,7 @@ public class AudioDecoderPlayer {
         decoder.start();
     }
 
-    private boolean setPlayer()
+    public boolean setPlayer()
     {
 
         int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
@@ -57,6 +58,7 @@ public class AudioDecoderPlayer {
 
         if (player.getState() == AudioTrack.STATE_INITIALIZED)
         {
+            ServerSocket.getServerSocketInstance().SetAudiaPlayer(this);
             player.play();
             return true;
         }
@@ -67,6 +69,49 @@ public class AudioDecoderPlayer {
 
     }
 
+    public void FeedAndPlay(byte[] data,int len)
+    {
+
+        ByteBuffer inputBuffer;
+        ByteBuffer outputBuffer;
+
+        //===========
+        ByteBuffer[] inputBuffers = decoder.getInputBuffers();
+        ByteBuffer[] outputBuffers = decoder.getOutputBuffers();
+        int inputBufferIndex = decoder.dequeueInputBuffer(-1);
+        if (inputBufferIndex >= 0) {
+            inputBuffer = inputBuffers[inputBufferIndex];
+            inputBuffer.clear();
+            inputBuffer.put(data);
+            decoder.queueInputBuffer(inputBufferIndex, 0, len, 0, 0);
+        }
+
+        MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
+        int outputBufferIndex = decoder.dequeueOutputBuffer(bufferInfo, 0);
+
+        while (outputBufferIndex >= 0) {
+            //Thread.sleep(20);
+            outputBuffer = outputBuffers[outputBufferIndex];
+
+            //  outputBuffer.position(bufferInfo.offset);
+            //   outputBuffer.limit(bufferInfo.offset + bufferInfo.size);
+            //   Log.d("AudioDecoder", bufferInfo.size + " bufferInfo size");
+            byte[] outData = new byte[bufferInfo.size];//pcm
+            outputBuffer.get(outData);
+            outputBuffer.clear();
+
+            if (outData.length > 0) {
+                player.write(outData, 0, outData.length);
+            }
+            //   Log.d("AudioDecoder", bufferInfo.presentationTimeUs + " bufferInfo.presentationTimeUs");
+
+            decoder.releaseOutputBuffer(outputBufferIndex, false);
+            outputBufferIndex = decoder.dequeueOutputBuffer(bufferInfo, 0);
+
+        }
+    }
+
+    @Deprecated
     public void StartPlay() {
         new Thread() {
             public void run() {
@@ -90,12 +135,12 @@ public class AudioDecoderPlayer {
 
                             int readlen=0;
                             len=0;
-                            while(len<2048)
+                            while(len<100)
                             {
                                 len+=inputStream.read(data,len,data.length-len);
                                 //readlen=inputStream.read(data,0,data.length);
                                 //len+=readlen;
-                               // Log.d("AudioDecoder", "read avalable:"+inputStream.available()+",len:"+len);
+                                Log.d("AudioDecoder", "read avalable:"+inputStream.available()+",len:"+len);
                             }
 
                             //===========
@@ -118,12 +163,12 @@ public class AudioDecoderPlayer {
 
 
                             while (outputBufferIndex >= 0) {
-                                Thread.sleep(20);
+                                //Thread.sleep(20);
                                 outputBuffer = outputBuffers[outputBufferIndex];
 
                               //  outputBuffer.position(bufferInfo.offset);
                              //   outputBuffer.limit(bufferInfo.offset + bufferInfo.size);
-                                Log.d("AudioDecoder", bufferInfo.size + " bufferInfo size");
+                             //   Log.d("AudioDecoder", bufferInfo.size + " bufferInfo size");
                                 outData = new byte[bufferInfo.size];//pcm
                                 outputBuffer.get(outData);
                                 outputBuffer.clear();
@@ -131,7 +176,7 @@ public class AudioDecoderPlayer {
                                 if (outData.length > 0) {
                                     player.write(outData, 0, outData.length);
                                 }
-                                Log.d("AudioDecoder", bufferInfo.presentationTimeUs + " bufferInfo.presentationTimeUs");
+                             //   Log.d("AudioDecoder", bufferInfo.presentationTimeUs + " bufferInfo.presentationTimeUs");
 
                                 decoder.releaseOutputBuffer(outputBufferIndex, false);
                                 outputBufferIndex = decoder.dequeueOutputBuffer(bufferInfo, 0);

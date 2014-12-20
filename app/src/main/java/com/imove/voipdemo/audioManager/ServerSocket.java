@@ -40,6 +40,7 @@ public class ServerSocket {
     int sendnum=0;
     final int buffersize=5000;
     private BufferedOutputStream pipedOutputStream=null;
+    private  AudioDecoderPlayer mAudioDecoderPlayer;
    // private ArrayList<int> iplist;
 
     private static ServerSocket mServerSocket=null;
@@ -64,6 +65,11 @@ public class ServerSocket {
         return mServerSocket;
     }
 
+    public void SetAudiaPlayer(AudioDecoderPlayer player)
+    {
+        mAudioDecoderPlayer=player;
+    }
+
 
     public void SetHost(String ip,int port)
     {
@@ -71,13 +77,19 @@ public class ServerSocket {
         mPort = port;
     }
 
+    public Socket GetServerSocket()
+    {
+        return mSocket;
+    }
+
     public void ConnectHost()
     {
         new Thread() {
             public void run() {
-                Log.d("aa", "ConnectHost:" + Thread.currentThread().getId());
+
                 try {
                     mSocket.connect(new InetSocketAddress(mIp, mPort), 5000);
+                    Log.d("aa", "ConnectHost:" + Thread.currentThread().getId());
                 } catch (IOException e) {
                     Log.e(TAG, "IOException:" + e);
                 }
@@ -188,6 +200,11 @@ public class ServerSocket {
     public void SetPeerIp(int ip)
     {
         mPeerIp=ip;
+    }
+
+    public int GetPeerIp()
+    {
+        return mPeerIp;
     }
 
     public void SendAudioToServer() {
@@ -361,10 +378,11 @@ public class ServerSocket {
                                 while (true) {
                                     if ((bufferread = dis.read(body, 0, length)) > 0) {
 
-                                        pipedOutputStream.write(body, 0, bufferread);
-                                        pipedOutputStream.flush();
+                                        //pipedOutputStream.write(body, 0, bufferread);
+                                        //pipedOutputStream.flush();
+                                        //feedandplay(body);
                                         Log.i(TAG, "RespFromServer,write to pipe,len:" +bufferread);
-
+                                        mAudioDecoderPlayer.FeedAndPlay(body,bufferread);
 
                                         if (bufferread < length)
                                             length -= bufferread;

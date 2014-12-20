@@ -385,7 +385,9 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor>{
 
             //AudioDecoderPlayer audioPlayer=new AudioDecoderPlayer(bis);
             AudioDecoderPlayer audioPlayer=new AudioDecoderPlayer(in);
-            audioPlayer.StartPlay();
+            audioPlayer.setPlayer();
+
+            //audioPlayer.StartPlay();
 
             for (String credential : DUMMY_CREDENTIALS) {
                 String[] pieces = credential.split(":");

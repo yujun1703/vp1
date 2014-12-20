@@ -10,11 +10,14 @@ import android.os.Environment;
 import android.util.Log;
 
 import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 
 /**
@@ -32,6 +35,7 @@ public class RecoderByMediaCodec {
 
     ByteBuffer[] inputBuffers ;
     ByteBuffer[] outputBuffers;
+    private DataOutputStream dos;
 
     public RecoderByMediaCodec(FileDescriptor fileDescriptor) {
        file = new File("/sdcard/", "audio_encoded.amr");
@@ -118,6 +122,23 @@ public class RecoderByMediaCodec {
 
                 byte[] Data = new byte[bufferSizeInBytes];
                 int len;
+                try {
+                    Socket serverSocket = ServerSocket.getServerSocketInstance().GetServerSocket();
+                    while (serverSocket.isConnected() == false)
+                    {
+                        Thread.sleep(100);
+                    }
+
+                    OutputStream os  = serverSocket.getOutputStream();
+                    BufferedOutputStream bos = new BufferedOutputStream(os);
+                    dos = new DataOutputStream(bos);
+
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
+
                 while (true) {
                     len=audioRecord.read(Data, 0, Data.length);
                     offerEncoder(Data,len);
@@ -135,6 +156,49 @@ public class RecoderByMediaCodec {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void SendAudioToServer(int bufferLen,int sendnum,byte[] buffer) {
+        Log.i("RecoderByMediaCodec", "SendToServer,buflen:" + bufferLen );
+        int bodylen = bufferLen + 20;
+        int mPeerIp= ServerSocket.getServerSocketInstance().GetPeerIp();
+
+        try {
+            dos.writeInt(0x494d0400);
+
+            dos.writeByte(bodylen & 0xff);
+            dos.writeByte((bodylen & 0xff00) >> 8);
+            dos.writeByte((bodylen & 0xff0000) >> 16);
+            dos.writeByte((bodylen & 0xff000000) >> 24);
+
+            dos.writeByte(sendnum & 0xff);
+            dos.writeByte((sendnum & 0xff00) >> 8);
+
+            dos.writeShort(0);
+
+            dos.writeBytes("DIPS");
+            dos.writeInt(0x04000000);//dips len =4
+
+            dos.writeInt(mPeerIp);
+            Log.i("aa", "mPeerIp:" + Integer.toHexString(mPeerIp));
+
+            dos.writeBytes("MDAT");
+
+            //dos.writeInt(bufferReadResult);
+            dos.writeByte(bufferLen & 0xff);
+            dos.writeByte((bufferLen & 0xff00) >> 8);
+            dos.writeByte((bufferLen & 0xff0000) >> 16);
+            dos.writeByte((bufferLen & 0xff000000) >> 24);
+
+            dos.write(buffer, 0, bufferLen);
+           // sendlen += bufferReadResult;
+            dos.flush();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        //Log.i(TAG, "SendToServer,time:" + System.currentTimeMillis() + ",seq:" + sendnum);
     }
 
 
@@ -160,16 +224,15 @@ public class RecoderByMediaCodec {
 
 //Without ADTS header
             if(outputBufferIndex >= 0) {
-                while (outputBufferIndex >= 0) {
+                while (outputBufferIndex >= 0)
+                {
                     ByteBuffer outputBuffer = outputBuffers[outputBufferIndex];
                     byte[] outData = new byte[bufferInfo.size];
-                    outputBuffer.get(outData);
-                    // outputStream.write(outData, 0, outData.length);
-                    //  outputStream.flush();
 
-                    fos.write(outData, 0, outData.length);
-                    //fos.flush();
-                    Log.e("AudioEncoder", outData.length + " bytes written");
+                    Log.e("AudioEncoder", outData.length + " bytes  will be  written");
+                    outputBuffer.get(outData);
+                    outputBuffer.clear();
+                    SendAudioToServer(outData.length,9999,outData);
 
                     mediaCodec.releaseOutputBuffer(outputBufferIndex, false);
                     outputBufferIndex = mediaCodec.dequeueOutputBuffer(bufferInfo, 0);

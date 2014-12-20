@@ -135,7 +135,7 @@ public class ChatFragment extends Fragment {
                 ServerSocket ss=ServerSocket.getServerSocketInstance();
                 ss.setLocalSocket(mFdManager.getReceiver());
 
-                ss.SendAudioToServer();
+               // ss.SendAudioToServer();
 
             }
         });
