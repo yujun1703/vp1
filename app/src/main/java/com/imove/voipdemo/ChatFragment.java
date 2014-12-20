@@ -126,16 +126,11 @@ public class ChatFragment extends Fragment {
             {
                 Log.d("aa","doInbackground:"+Thread.currentThread().getId());
 
-               // mRecorderManager.recorder(mFdManager.GetStreamSocket());
 
-                recoderByMediaCodec=new RecoderByMediaCodec(mFdManager.GetStreamSocket());
+                recoderByMediaCodec=new RecoderByMediaCodec();
+                recoderByMediaCodec.prepare();
                 recoderByMediaCodec.startRecord();
 
-
-                ServerSocket ss=ServerSocket.getServerSocketInstance();
-                ss.setLocalSocket(mFdManager.getReceiver());
-
-               // ss.SendAudioToServer();
 
             }
         });

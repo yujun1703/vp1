@@ -207,6 +207,57 @@ public class ServerSocket {
         return mPeerIp;
     }
 
+    public void SendAudioToServer(int bufferLen,byte[] buffer) {
+        Log.i("RecoderByMediaCodec", "SendToServer,buflen:" + bufferLen );
+        int bodylen = bufferLen + 20;
+        int mPeerIp= ServerSocket.getServerSocketInstance().GetPeerIp();
+
+        try {
+
+            OutputStream os = mSocket.getOutputStream();
+            BufferedOutputStream bos = new BufferedOutputStream(os);
+            DataOutputStream dos = new DataOutputStream(bos);
+
+
+            dos.writeInt(0x494d0400);
+
+            dos.writeByte(bodylen & 0xff);
+            dos.writeByte((bodylen & 0xff00) >> 8);
+            dos.writeByte((bodylen & 0xff0000) >> 16);
+            dos.writeByte((bodylen & 0xff000000) >> 24);
+
+            dos.writeByte(sendnum & 0xff);
+            dos.writeByte((sendnum & 0xff00) >> 8);
+
+            dos.writeShort(0);
+
+            dos.writeBytes("DIPS");
+            dos.writeInt(0x04000000);//dips len =4
+
+            dos.writeInt(mPeerIp);
+            Log.i("aa", "mPeerIp:" + Integer.toHexString(mPeerIp));
+
+            dos.writeBytes("MDAT");
+
+            //dos.writeInt(bufferReadResult);
+            dos.writeByte(bufferLen & 0xff);
+            dos.writeByte((bufferLen & 0xff00) >> 8);
+            dos.writeByte((bufferLen & 0xff0000) >> 16);
+            dos.writeByte((bufferLen & 0xff000000) >> 24);
+
+            dos.write(buffer, 0, bufferLen);
+            // sendlen += bufferReadResult;
+            dos.flush();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        //Log.i(TAG, "SendToServer,time:" + System.currentTimeMillis() + ",seq:" + sendnum);
+    }
+
+
+    @Deprecated
     public void SendAudioToServer() {
         new Thread() {
             public void run() {
