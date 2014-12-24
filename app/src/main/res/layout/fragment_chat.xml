@@ -10,7 +10,7 @@ tools:context="com.imove.voipdemo.ChatFragment">
         android:id="@+id/sayButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Say"/>
+        android:text="语音聊天"/>
 
     <Button
         android:id="@+id/stopButton"

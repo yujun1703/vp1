@@ -123,13 +123,10 @@ public class ChatFragment extends Fragment {
             public void onClick(View v)
             {
                 Log.d("aa","doInbackground:"+Thread.currentThread().getId());
-
-
+                mVoiceBtn.setClickable(false);
                 recoderByMediaCodec=new RecoderByMediaCodec();
                 recoderByMediaCodec.prepare();
                 recoderByMediaCodec.startRecord();
-
-
             }
         });
 
@@ -138,9 +135,8 @@ public class ChatFragment extends Fragment {
                 public void onClick(View v)
                 {
                     recoderByMediaCodec.stopRecorder();
-
+                    mVoiceBtn.setClickable(true);
                     //mRecorderManager.stopRecorder();
-
                 }
             }
         );

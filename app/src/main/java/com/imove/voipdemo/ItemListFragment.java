@@ -1,9 +1,11 @@
 package com.imove.voipdemo;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -92,9 +94,38 @@ public class ItemListFragment extends Fragment implements AbsListView.OnItemClic
 
 
         ServerSocket ss=ServerSocket.getServerSocketInstance();
-        mHandler=new Handler();
+        mHandler=new UIHandler();
         ss.setUserListUpdate(mAdapter,mHandler);
 
+    }
+
+    class UIHandler extends Handler{
+        public UIHandler(){
+
+        }
+
+        @Override
+        public void handleMessage(Message msg)
+        {
+            super.handleMessage(msg);
+
+            //此处可以更新UI
+            switch (msg.what)
+            {
+                case 1:
+                   Intent intent=new Intent(getActivity(),SessionActivity.class);
+                   startActivity(intent);
+            }
+
+
+
+
+           // Bundle b = msg.getData();
+
+           // String color = b.getString("color");
+
+           // MyHandlerActivity.this.button.append(color);
+        }
     }
 
     @Override

@@ -23,6 +23,8 @@ import java.net.Socket;
 import java.util.concurrent.BlockingDeque;
 
 import android.os.MemoryFile;
+import junit.framework.TestCase;
+
 
 /**
  * Created by zhangyun on 14/12/10.
@@ -91,7 +93,7 @@ public class ServerSocket {
         }.start();
     }
 
-    public void GetUserList()
+    public synchronized void GetUserList()
     {
         new Thread() {
             public void run() {
@@ -138,7 +140,8 @@ public class ServerSocket {
         }.start();
     }
 
-    public void KeepAliveToServer()
+    String name="abc";
+    public synchronized void KeepAliveToServer()
     {
         new Thread() {
             public void run() {
@@ -147,9 +150,6 @@ public class ServerSocket {
                     while (true) {
 
                         if(mSocket.isConnected()==true) {
-
-
-
 
                             //Log.i(TAG, "KeepAliveToServer,sendnum:" + sendnum);
                             dos.writeInt(0x494d0100);
@@ -167,6 +167,17 @@ public class ServerSocket {
                             dos.writeBytes("STAT");
                             dos.writeInt(0x02000000);//STAT len =2
                             dos.writeShort(0x0100);
+
+                            //user name
+                            dos.writeBytes("NAME");
+                            //dos.writeInt(name.length());//STAT len =2
+                            dos.writeByte(name.length() & 0xff);
+                            dos.writeByte((name.length() & 0xff00) >> 8);
+                            dos.writeByte((name.length() & 0xff0000) >> 16);
+                            dos.writeByte((name.length() & 0xff000000) >> 24);
+
+                            dos.writeBytes(name);
+
                             dos.flush();
                             sendnum++;
                         }
@@ -187,8 +198,55 @@ public class ServerSocket {
         mPeerIp=ip;
     }
 
+    public synchronized void CreateSession(short action)
+    {
+        try {
+            if(mSocket.isConnected()==true) {
 
-    public void SendAudioToServer(int bufferLen,byte[] buffer) {
+                //Log.i(TAG, "KeepAliveToServer,sendnum:" + sendnum);
+                dos.writeInt(0x494d0200);
+
+                //长度为10(atom长度)
+                dos.writeInt(0x0a000000);
+                dos.writeByte(sendnum & 0xff);
+                dos.writeByte((sendnum & 0xff00) >> 8);
+
+                //retcode
+                dos.writeShort(0);
+
+                //////////atom//////
+                dos.writeBytes("IPDE");
+                dos.writeInt(0x04000000);//dips len =4
+                dos.writeInt(mPeerIp);
+
+
+                //user name
+                dos.writeBytes("NAME");
+                dos.writeByte(name.length() & 0xff);
+                dos.writeByte((name.length() & 0xff00) >> 8);
+                dos.writeByte((name.length() & 0xff0000) >> 16);
+                dos.writeByte((name.length() & 0xff000000) >> 24);
+                dos.writeBytes(name);
+
+                //command
+                dos.writeBytes("UACT");
+                dos.writeShort(0x0200);
+                dos.writeByte(action & 0xff);
+                dos.writeByte((action & 0xff00) >> 8);
+
+                dos.flush();
+                sendnum++;
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+
+
+    }
+
+    public synchronized void SendAudioToServer(int bufferLen,byte[] buffer) {
         Log.i("RecoderByMediaCodec", "SendToServer,buflen:" + bufferLen );
 
         if(mSocket.isConnected()==false)
@@ -211,9 +269,8 @@ public class ServerSocket {
 
             dos.writeShort(0);
 
-            dos.writeBytes("DIPS");
+            dos.writeBytes("IPDE");
             dos.writeInt(0x04000000);//dips len =4
-
             dos.writeInt(mPeerIp);
             Log.i("aa", "mPeerIp:" + Integer.toHexString(mPeerIp));
 
@@ -275,6 +332,8 @@ public class ServerSocket {
                                 break;
 
                             case 0x494d0200:
+                                Log.d("aa","dd");
+
                                 break;
 
                             case 0x494d0300:
@@ -327,6 +386,7 @@ public class ServerSocket {
                                 break;
                             case 0x494d0700:
                                 break;
+
                             case 0x494d0180:
 
                                 length+=dis.readByte()&0xff;
@@ -357,11 +417,33 @@ public class ServerSocket {
                                 for(int i=0;i<atomsize;i+=4) {
                                     ip[i] = dis.readInt();
                                     Log.i(TAG, "resp ip list:" + Integer.toHexString(ip[i]));
+                                    /*
                                     DummyContent.DummyItem item=new DummyContent.DummyItem(Integer.toString(i) ,Integer.toString(ip[i]),ip[i]);
 
                                     if(DummyContent.haveItem(item)==false) {
                                         DummyContent.addItem(item);
                                     }
+                                    */
+                                }
+
+                                //更新用户名
+                                for(int i=0;i<atomsize;i+=4)
+                                {
+                                    int nameleng=0;
+
+                                    nameleng+=dis.readByte()&0xff;
+                                    nameleng+=(dis.readByte()<<8)&0xff00;
+                                    nameleng+=(dis.readByte()<<16)&0xff0000;
+                                    nameleng+=(dis.readByte()<<24)&0xff000000;
+                                    byte[] name=new byte[nameleng];
+                                    dis.read(name,0,nameleng);
+
+                                    DummyContent.DummyItem item=new DummyContent.DummyItem(Integer.toString(i) ,name.toString(),ip[i]);
+
+                                    if(DummyContent.haveItem(item)==false) {
+                                        DummyContent.addItem(item);
+                                    }
+                                    //name[i]=dis.readChars(nameleng);
                                 }
 
                                 //更新列表

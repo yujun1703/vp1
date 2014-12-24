@@ -21,6 +21,7 @@
             android:windowSoftInputMode="adjustResize|stateVisible" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -33,8 +34,10 @@
             android:label="@string/title_activity_register"
             android:windowSoftInputMode="adjustResize|stateHidden" >
         </activity>
-
+        <activity
+            android:name=".SessionActivity"
+            android:label="@string/title_activity_session" >
+        </activity>
     </application>
-
 
 </manifest>
