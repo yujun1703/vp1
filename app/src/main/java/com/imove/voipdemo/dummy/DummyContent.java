@@ -35,6 +35,9 @@ public class DummyContent {
         ITEMS.add(item);
         ITEM_MAP.put(item.id, item);
     }
+    public static boolean isEmpty(){
+        return ITEMS.isEmpty();
+    }
 
     public static boolean haveItem(DummyItem item)
     {

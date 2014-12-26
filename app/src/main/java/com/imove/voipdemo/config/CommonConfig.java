@@ -24,6 +24,8 @@ public class CommonConfig {
     public static final int audioFormat= AudioFormat.ENCODING_PCM_16BIT;
     public static final int bitrate= 16*1024;
 
+
+
     public static int getChannels(int channelConfig) {
         int channelCount = 0;
         switch (channelConfig) {
@@ -42,5 +44,13 @@ public class CommonConfig {
         }
         return channelCount;
     }
+
+
+    public static final  short USER_ACTION_REQUEST=0x01;
+    public static final short USER_ACTION_AGREE=0x02;
+    public static final short USER_ACTION_REJECT=0x03;
+    public static final short USER_ACTION_QUIT=0x04;
+
+
 
 }

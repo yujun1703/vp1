@@ -326,9 +326,11 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor>{
             mServerSocket=ServerSocket.getServerSocketInstance();
             mServerSocket.SetHost("172.16.2.60",8803);
             mServerSocket.ConnectHost();
-            mServerSocket.KeepAliveToServer();
+           // mServerSocket.KeepAliveToServer();
             mServerSocket.ReceiveFromServer();
-            mServerSocket.GetUserList();
+            //mServerSocket.GetUserList();
+
+            mServerSocket.SetUserName(mEmail);
 
             AudioDecoderPlayer audioPlayer=new AudioDecoderPlayer();
             audioPlayer.setPlayer();

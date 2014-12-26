@@ -103,7 +103,6 @@ public class ItemListFragment extends Fragment implements AbsListView.OnItemClic
         public UIHandler(){
 
         }
-
         @Override
         public void handleMessage(Message msg)
         {

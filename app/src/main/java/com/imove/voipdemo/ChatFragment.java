@@ -1,6 +1,7 @@
 package com.imove.voipdemo;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.Fragment;
@@ -63,12 +64,10 @@ public class ChatFragment extends Fragment {
         fragment.setArguments(args);
         return fragment;
     }
+
     public ChatFragment() {
       //  mRecorderManager=new RecorderManager();
         // Required empty public constructor
-
-
-
     }
 
     @Override
@@ -123,10 +122,17 @@ public class ChatFragment extends Fragment {
             public void onClick(View v)
             {
                 Log.d("aa","doInbackground:"+Thread.currentThread().getId());
+                /*
                 mVoiceBtn.setClickable(false);
                 recoderByMediaCodec=new RecoderByMediaCodec();
                 recoderByMediaCodec.prepare();
                 recoderByMediaCodec.startRecord();
+                */
+                Bundle bundle = new Bundle();
+                bundle.putSerializable("send", "me");
+                Intent intent=new Intent(getActivity(),SessionActivity.class);
+                intent.putExtras(bundle);
+                startActivity(intent);
             }
         });
 

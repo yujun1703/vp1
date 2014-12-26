@@ -2,6 +2,7 @@ package com.imove.voipdemo.audioManager;
 
 import android.net.LocalSocket;
 import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.widget.ArrayAdapter;
 
@@ -26,6 +27,7 @@ import android.os.MemoryFile;
 import junit.framework.TestCase;
 
 
+
 /**
  * Created by zhangyun on 14/12/10.
  */
@@ -40,17 +42,22 @@ public class ServerSocket {
     private Handler mUIHandler;
     int sendnum=0;
     final int buffersize=5000;
-
+    String mname;
     private  AudioDecoderPlayer mAudioDecoderPlayer;
     private DataOutputStream dos;
+    ConnectionFsm connectionFsm;
 
     private static ServerSocket mServerSocket=null;
 
     public ServerSocket()
     {
         mSocket = new Socket();
+        connectionFsm=new ConnectionFsm();
     }
-
+    public  ConnectionFsm getConnectionFsm()
+    {
+        return connectionFsm;
+    }
 
 
     public synchronized static ServerSocket getServerSocketInstance()
@@ -74,17 +81,24 @@ public class ServerSocket {
     }
 
 
+    public void SetUserName(String name)
+    {
+        mname=name;
+    }
+
     public void ConnectHost()
     {
         new Thread() {
             public void run() {
 
                 try {
+
                     mSocket.connect(new InetSocketAddress(mIp, mPort), 5000);
                     OutputStream os = mSocket.getOutputStream();
                     BufferedOutputStream bos = new BufferedOutputStream(os);
                     dos = new DataOutputStream(bos);
-
+                    KeepAliveToServer();
+                    GetUserList();
                     Log.d("aa", "ConnectHost:" + Thread.currentThread().getId());
                 } catch (IOException e) {
                     Log.e(TAG, "IOException:" + e);
@@ -102,8 +116,8 @@ public class ServerSocket {
 
                     while(true) {
 
-                        if (mSocket.isConnected() == true) {
-
+                        if (mSocket.isConnected() == true){
+                          //  if (mSocket.isConnected() == true&&DummyContent.isEmpty()==false) {
                          //   Log.i(TAG, "GetUserList,sendnum:" + sendnum);
                             dos.writeInt(0x494d0180);
 
@@ -124,6 +138,7 @@ public class ServerSocket {
                         //    Log.i(TAG, "GetUserList list xxxxxx,seq:"+sendnum+",time:" +System.currentTimeMillis());
 
                             sendnum++;
+                            //Thread.sleep(30000);
                             Thread.sleep(3000);
                         }
                         else
@@ -140,7 +155,7 @@ public class ServerSocket {
         }.start();
     }
 
-    String name="abc";
+
     public synchronized void KeepAliveToServer()
     {
         new Thread() {
@@ -155,7 +170,14 @@ public class ServerSocket {
                             dos.writeInt(0x494d0100);
 
                             //长度为10(atom长度)
-                            dos.writeInt(0x0a000000);
+                            //dos.writeInt(0x0a000000);
+                            int length=10+mname.length()+4+4;
+
+                            dos.writeByte(length & 0xff);
+                            dos.writeByte((length & 0xff00) >> 8);
+                            dos.writeByte((length & 0xff0000) >> 16);
+                            dos.writeByte((length & 0xff000000) >> 24);
+
 
                             dos.writeByte(sendnum & 0xff);
                             dos.writeByte((sendnum & 0xff00) >> 8);
@@ -171,17 +193,18 @@ public class ServerSocket {
                             //user name
                             dos.writeBytes("NAME");
                             //dos.writeInt(name.length());//STAT len =2
-                            dos.writeByte(name.length() & 0xff);
-                            dos.writeByte((name.length() & 0xff00) >> 8);
-                            dos.writeByte((name.length() & 0xff0000) >> 16);
-                            dos.writeByte((name.length() & 0xff000000) >> 24);
+                            dos.writeByte(mname.length() & 0xff);
+                            dos.writeByte((mname.length() & 0xff00) >> 8);
+                            dos.writeByte((mname.length() & 0xff0000) >> 16);
+                            dos.writeByte((mname.length() & 0xff000000) >> 24);
 
-                            dos.writeBytes(name);
+                            dos.writeBytes(mname);
 
                             dos.flush();
                             sendnum++;
                         }
-                        Thread.sleep(10000);
+                        //Thread.sleep(20000);
+                        Thread.sleep(2000);
                     }
                 }
                 catch (Exception e)
@@ -198,16 +221,28 @@ public class ServerSocket {
         mPeerIp=ip;
     }
 
+
+
+
+
     public synchronized void CreateSession(short action)
     {
         try {
             if(mSocket.isConnected()==true) {
-
                 //Log.i(TAG, "KeepAliveToServer,sendnum:" + sendnum);
                 dos.writeInt(0x494d0200);
 
                 //长度为10(atom长度)
-                dos.writeInt(0x0a000000);
+                //dos.writeInt(0x0a000000);
+               // int length=10+mname.length();
+               // int length=12+mname.length()+4+4+10;
+                int length=12+10;
+
+                dos.writeByte(length & 0xff);
+                dos.writeByte((length & 0xff00) >> 8);
+                dos.writeByte((length & 0xff0000) >> 16);
+                dos.writeByte((length & 0xff000000) >> 24);
+
                 dos.writeByte(sendnum & 0xff);
                 dos.writeByte((sendnum & 0xff00) >> 8);
 
@@ -215,22 +250,25 @@ public class ServerSocket {
                 dos.writeShort(0);
 
                 //////////atom//////
+
+                //12bytes
                 dos.writeBytes("IPDE");
                 dos.writeInt(0x04000000);//dips len =4
                 dos.writeInt(mPeerIp);
 
-
+/*
                 //user name
                 dos.writeBytes("NAME");
-                dos.writeByte(name.length() & 0xff);
-                dos.writeByte((name.length() & 0xff00) >> 8);
-                dos.writeByte((name.length() & 0xff0000) >> 16);
-                dos.writeByte((name.length() & 0xff000000) >> 24);
-                dos.writeBytes(name);
+                dos.writeByte(mname.length() & 0xff);
+                dos.writeByte((mname.length() & 0xff00) >> 8);
+                dos.writeByte((mname.length() & 0xff0000) >> 16);
+                dos.writeByte((mname.length() & 0xff000000) >> 24);
+                dos.writeBytes(mname);
+*/
 
-                //command
+                //command 10bytes
                 dos.writeBytes("UACT");
-                dos.writeShort(0x0200);
+                dos.writeInt(0x02000000);
                 dos.writeByte(action & 0xff);
                 dos.writeByte((action & 0xff00) >> 8);
 
@@ -293,6 +331,29 @@ public class ServerSocket {
         //Log.i(TAG, "SendToServer,time:" + System.currentTimeMillis() + ",seq:" + sendnum);
     }
 
+    private void readAtom(DataInputStream dis)
+    {
+
+    }
+
+    private String ReadStringFromStream(DataInputStream dis,int len)
+    {
+        StringBuffer sb = new StringBuffer();
+        for(int j=0;j<len;j++)
+        {
+            // sb.append(dis.read());
+            try {
+                sb.append(String.format("%c", dis.read()));
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+        }
+        return sb.toString();
+    }
+
+
     public void ReceiveFromServer() {
         new Thread() {
             public void run() {
@@ -328,13 +389,75 @@ public class ServerSocket {
                                 dis.skipBytes(6);
                                 retcode+=dis.readByte()&0xff;
                                 retcode+=dis.readByte()&0xff;
-                             //   Log.i(TAG, "retcode :" + Integer.toHexString(retcode));
+                                Log.i(TAG, "retcode :" + Integer.toHexString(retcode));
                                 break;
 
                             case 0x494d0200:
                                 Log.d("aa","dd");
+                                length+=dis.readByte()&0xff;
+                                length+=(dis.readByte()<<8)&0xff00;
+                                length+=(dis.readByte()<<16)&0xff0000;
+                                length+=(dis.readByte()<<24)&0xff000000;
+                                //length-=20;
 
-                                break;
+                                seq+=dis.readByte()&0xff;
+                                seq+=(dis.readByte()&0xff)<<8;
+
+                                retcode+=dis.readByte()&0xff;
+                                retcode+=(dis.readByte()&0xff)<<8;
+
+                             //   if(retcode==1)
+                              //      break;
+
+                                if(retcode==0) {
+
+                                    Log.i(TAG, "RespFromServer ,0x494d0200 retcode" + Integer.toHexString(retcode));
+
+/*
+                                    dos.writeBytes("UACT");
+                                    dos.writeInt(0x02000000);
+                                    dos.writeByte(action & 0xff);
+                                    dos.writeByte((action & 0xff00) >> 8);
+*/
+
+                                //"IPSR" LEN=4
+                                    dis.skipBytes(8);
+                                    int sip=dis.readInt();
+                                    Log.i(TAG, "RespFromServer ,ssip:"+sip);
+
+                                //"IPDE" len=4
+                                    dis.skipBytes(12);
+
+
+/*
+                                    dos.writeBytes("UACT");
+                                    dos.writeInt(0x02000000);
+                                    dos.writeByte(action & 0xff);
+                                    dos.writeByte((action & 0xff00) >> 8);
+*/
+
+                                    dis.skipBytes(8);
+                                    int action=dis.readByte()&0xff;
+                                    action+=(dis.readByte()&0xff)<<8;
+
+                                    switch (action)
+                                    {
+                                        case CommonConfig.USER_ACTION_REQUEST:
+                                            if (mUIHandler != null) {
+                                                Log.i(TAG, "RespFromServer ,sendmassage to list");
+                                                Message msg = new Message();
+                                                msg.what = 1;
+                                                mUIHandler.sendMessage(msg);
+                                            }
+                                            break;
+                                        case CommonConfig.USER_ACTION_AGREE:
+                                            break;
+                                        case CommonConfig.USER_ACTION_REJECT:
+                                            break;
+                                        case CommonConfig.USER_ACTION_QUIT:
+                                            break;
+                                    }
+                                }
 
                             case 0x494d0300:
                                 break;
@@ -358,7 +481,6 @@ public class ServerSocket {
 
                                 if(retcode==1)
                                     break;
-
 
                                 length-=20;
                                 dis.skipBytes(20);
@@ -388,7 +510,6 @@ public class ServerSocket {
                                 break;
 
                             case 0x494d0180:
-
                                 length+=dis.readByte()&0xff;
                                 length+=(dis.readByte()<<8)&0xff00;
                                 length+=(dis.readByte()<<16)&0xff0000;
@@ -399,11 +520,11 @@ public class ServerSocket {
                                // Log.i(TAG, "resp ip list xxxxxx,seq:"+seq+",time:" +System.currentTimeMillis());
                                 retcode+=dis.readByte()&0xff;
                                 retcode+=(dis.readByte()&0xff)<<8;
-
+                                Log.i(TAG, "ip list length:" + length);
                                 if(length==0)
                                     break;
 
-                                int id = dis.readInt();
+                                int id = dis.readInt();//"IPLS"
                                 int atomsize=0;
 
                                 atomsize+=dis.readByte()&0xff;
@@ -411,8 +532,7 @@ public class ServerSocket {
                                 atomsize+=(dis.readByte()<<16)&0xff0000;
                                 atomsize+=(dis.readByte()<<24)&0xff000000;
 
-                              //  Log.i(TAG, "ip list size:" + atomsize);
-
+                                Log.i(TAG, "ip list size:" + atomsize);
                                 int[] ip=new int[atomsize];
                                 for(int i=0;i<atomsize;i+=4) {
                                     ip[i] = dis.readInt();
@@ -426,19 +546,29 @@ public class ServerSocket {
                                     */
                                 }
 
+                                dis.skipBytes(8);
                                 //更新用户名
                                 for(int i=0;i<atomsize;i+=4)
                                 {
                                     int nameleng=0;
+                                    StringBuffer sb = new StringBuffer();
+                                    dis.skipBytes(4);//"NAME"
 
                                     nameleng+=dis.readByte()&0xff;
                                     nameleng+=(dis.readByte()<<8)&0xff00;
                                     nameleng+=(dis.readByte()<<16)&0xff0000;
                                     nameleng+=(dis.readByte()<<24)&0xff000000;
-                                    byte[] name=new byte[nameleng];
-                                    dis.read(name,0,nameleng);
+                                    Log.i(TAG, "resp ip list len:" + Integer.toHexString(nameleng));
 
-                                    DummyContent.DummyItem item=new DummyContent.DummyItem(Integer.toString(i) ,name.toString(),ip[i]);
+                                    for(int j=0;j<nameleng;j++)
+                                    {
+                                       // sb.append(dis.read());
+                                        sb.append(String.format("%c",dis.read()));
+                                    }
+
+                                    Log.i(TAG, "resp ip list name:" + sb.toString());
+
+                                    DummyContent.DummyItem item=new DummyContent.DummyItem(Integer.toString(i) ,sb.toString(),ip[i]);
 
                                     if(DummyContent.haveItem(item)==false) {
                                         DummyContent.addItem(item);

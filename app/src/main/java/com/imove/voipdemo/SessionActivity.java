@@ -4,11 +4,18 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.TextView;
+
 import com.imove.voipdemo.R;
+import com.imove.voipdemo.audioManager.ServerSocket;
+import com.imove.voipdemo.audioManager.SocketHeader;
+import com.imove.voipdemo.config.CommonConfig;
 
 public class SessionActivity extends Activity {
 
@@ -17,19 +24,31 @@ public class SessionActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_session);
 
-        Dialog dialog = new AlertDialog.Builder(this).setTitle("新的来电").setMessage("是否接受xxx的来电？").setPositiveButton("接受", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        Log.d("aa", "bb");
+        Intent intent = this.getIntent();
+
+        String a=(String)intent.getSerializableExtra("send");
+        Log.d("aa","intent ddd:"+a);
+        if(intent.getSerializableExtra("send")!=null)
+        {
+            //ServerSocket.getServerSocketInstance().getConnectionFsm().
+            ServerSocket.getServerSocketInstance().CreateSession(CommonConfig.USER_ACTION_REQUEST);
+        }
+        else {
+
+            Dialog dialog = new AlertDialog.Builder(this).setTitle("新的来电").setMessage("是否接受xxx的来电？").setPositiveButton("接受", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            Log.d("aa", "bb");
+                        }
                     }
+            ).setNegativeButton("拒绝", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    Log.d("aa", "cc");
                 }
-        ).setNegativeButton("拒绝", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                Log.d("aa","cc");
-            }
-        }).create();
-        dialog.show();
+            }).create();
+            dialog.show();
+        }
 
     }
 
