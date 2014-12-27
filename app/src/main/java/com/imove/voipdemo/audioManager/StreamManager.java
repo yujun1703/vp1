@@ -5,6 +5,8 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.widget.ArrayAdapter;
+
+import com.google.android.gms.internal.dc;
 import com.imove.voipdemo.config.CommonConfig;
 import com.imove.voipdemo.dummy.DummyContent;
 import java.io.BufferedInputStream;
@@ -61,12 +63,6 @@ public class StreamManager implements  SendDataListener{
         return mServerSocket;
     }
 
-    /*
-    public void SetAudiaPlayer(AudioDecoderPlayer player)
-    {
-        mAudioDecoderPlayer=player;
-    }
-*/
 
     public void SetHost(String ip,int port)
     {
@@ -146,6 +142,9 @@ public class StreamManager implements  SendDataListener{
     }
 
 
+
+
+
     public synchronized void GetUserList()
     {
         new Thread() {
@@ -189,6 +188,7 @@ public class StreamManager implements  SendDataListener{
     }
 
 
+
     public synchronized void KeepAliveToServer()
     {
         new Thread() {
@@ -201,6 +201,7 @@ public class StreamManager implements  SendDataListener{
                             Log.i(TAG, "KeepAliveToServer,sendnum:" + sendnum);
                             ByteBuffer buffer = ByteBuffer.allocate(1024);
                             buffer.order(ByteOrder.LITTLE_ENDIAN);
+
 
                             buffer.position(12);
                             int len=write_atom_short(buffer,"STAT",(short)2);
@@ -233,59 +234,36 @@ public class StreamManager implements  SendDataListener{
 
     public void SetPeerIp(int ip)
     {
-      //  mPeerIp=ip;
 
+        mPeerIp=ReverseInt(ip);
+    }
+
+    private int ReverseInt(int in)
+    {
         ByteBuffer buffer = ByteBuffer.allocate(1024);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
-        buffer.putInt(ip);
-        mPeerIp=0;
+        buffer.putInt(in);
+        int out=0;
         for(int  i=0;i<buffer.position();i++)
         {
-            mPeerIp=mPeerIp|(((buffer.get(i)&0xff)<<(3-i)*8));
-            //mPeerIp=mPeerIp<<8 + buffer.get(i);
+            out=out|(((buffer.get(i)&0xff)<<(3-i)*8));
         }
-        Log.d("aa","ip:"+Integer.toHexString(mPeerIp)+" org ip:"+Integer.toHexString(ip));
-
+        return out;
     }
 
-/*
-    public synchronized void CreateSession(short action)
+    private int ReverseShort(short in)
     {
-        try {
-            if(mSocket.isConnected()==true) {
-                dos.writeInt(0x494d0200);
-
-                int length=12+10;
-
-                dos.writeByte(length & 0xff);
-                dos.writeByte((length & 0xff00) >> 8);
-                dos.writeByte((length & 0xff0000) >> 16);
-                dos.writeByte((length & 0xff000000) >> 24);
-
-                dos.writeByte(sendnum & 0xff);
-                dos.writeByte((sendnum & 0xff00) >> 8);
-
-                dos.writeShort(0);
-
-                dos.writeBytes("IPDE");
-                dos.writeInt(0x04000000);//dips len =4
-                dos.writeInt(mPeerIp);
-
-                //command 10bytes
-                dos.writeBytes("UACT");
-                dos.writeInt(0x02000000);
-                dos.writeByte(action & 0xff);
-                dos.writeByte((action & 0xff00) >> 8);
-                dos.flush();
-                sendnum++;
-            }
-        }
-        catch (Exception e)
+        ByteBuffer buffer = ByteBuffer.allocate(1024);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.putShort(in);
+        int out=0;
+        for(int  i=0;i<buffer.position();i++)
         {
-            e.printStackTrace();
+            out=out|(((buffer.get(i)&0xff)<<(1-i)*8));
         }
+        return out;
     }
-*/
+
 
 
     public synchronized void CreateSession(short action)
@@ -319,64 +297,15 @@ public class StreamManager implements  SendDataListener{
         }
     }
 
-/*
-    public synchronized void OnSendDataCallback(byte[] sendbuf,int sendbufLen) {
-        Log.i("RecoderByMediaCodec", "SendToServer,buflen:" + sendbufLen );
 
-        if(mSocket.isConnected()==false)
-        {
-            ConnectHost();
-        }
-
-        int bodylen = sendbufLen + 20;
-        try {
-
-            dos.writeInt(0x494d0400);
-
-            dos.writeByte(bodylen & 0xff);
-            dos.writeByte((bodylen & 0xff00) >> 8);
-            dos.writeByte((bodylen & 0xff0000) >> 16);
-            dos.writeByte((bodylen & 0xff000000) >> 24);
-
-            dos.writeByte(sendnum & 0xff);
-            dos.writeByte((sendnum & 0xff00) >> 8);
-
-            dos.writeShort(0);
-
-            dos.writeBytes("IPDE");
-            dos.writeInt(0x04000000);//dips len =4
-            dos.writeInt(mPeerIp);
-            Log.i("aa", "mPeerIp:" + Integer.toHexString(mPeerIp));
-
-            dos.writeBytes("MDAT");
-
-            //dos.writeInt(bufferReadResult);
-            dos.writeByte(sendbufLen & 0xff);
-            dos.writeByte((sendbufLen & 0xff00) >> 8);
-            dos.writeByte((sendbufLen & 0xff0000) >> 16);
-            dos.writeByte((sendbufLen & 0xff000000) >> 24);
-
-            dos.write(sendbuf, 0, sendbufLen);
-            // sendlen += bufferReadResult;
-            dos.flush();
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-        }
-        //Log.i(TAG, "SendToServer,time:" + System.currentTimeMillis() + ",seq:" + sendnum);
-    }
-*/
 
     public void OnSendDataCallback(byte[] sendbuf,int sendbufLen) {
-  //  public synchronized void SendAudioToServer(int bufferLen,byte[] buffer) {
         Log.i("RecoderByMediaCodec", "SendToServer,mSocket.isClosed:" + mSocket.isClosed() );
 
         if(mSocket.isClosed()==true&&mSocket.isConnected()==true)
         {
             ConnectHost();
         }
-
         try {
 
             ByteBuffer buffer = ByteBuffer.allocate(1024);
@@ -397,32 +326,14 @@ public class StreamManager implements  SendDataListener{
             Log.i(TAG, "OnSendDataCallback  xxxxxx,seq:"+sendnum+",time:" +System.currentTimeMillis());
             sendnum++;
 
-
         }
         catch (Exception e)
         {
             e.printStackTrace();
         }
-       // Log.i(TAG, "SendAudioToServer,body len : "+bodylen);
     }
 
-    /*
-    private void readAtom(DataInputStream dis)
-    {
 
-        String id=ReadStringFromStream(dis,4);
-        if(id=="STAT")
-        else if(id=="IMTY")
-        else if(id=="IPSR")
-        else if(id=="IPDE")
-        else if(id=="IPLS")
-        else if(id=="MDAT")
-        else if(id=="CVER")
-        else if(id=="NAME")
-        else if(id=="NALS")
-        else if(id=="UACT")
-    }
-*/
     private String ReadStringFromStream(DataInputStream dis,int len)
     {
         StringBuffer sb = new StringBuffer();
@@ -473,6 +384,158 @@ public class StreamManager implements  SendDataListener{
         }
     }
 
+    /*
+
+     private void readAtom(DataInputStream dis)
+     {
+
+         String id=ReadStringFromStream(dis,4);
+         if(id=="IMTY")
+         {
+
+         }
+         else if(id=="IPSR")
+         {
+             int sip=dis.readInt();
+         }
+         else if(id=="IPDE")
+         {
+
+         }
+         else if(id=="IPLS")
+         {
+
+         }
+         else if(id=="MDAT")
+         {
+
+         }
+         else if(id=="CVER")
+         {
+
+         }
+         else if(id=="NAME")
+         {
+
+         }
+         else if(id=="NALS")
+         {
+
+         }
+         else if(id=="UACT")
+         {
+
+         }
+     }
+    */
+    private int ReadBody(DataInputStream dataInputStream)
+    {
+        try {
+            int length = ReverseInt(dataInputStream.readInt());
+            int seq = ReverseShort(dataInputStream.readShort());
+            int retcode = ReverseShort(dataInputStream.readShort());
+            if(retcode==0)
+                return length;
+            else if(retcode == 1)
+                return -11;
+            else
+                return -1;
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    private int ReadAlive(DataInputStream dataInputStream)
+    {
+        return ReadBody(dataInputStream);
+
+    }
+
+    private void ReadSession(DataInputStream dataInputStream)
+    {
+        try {
+            int bodylen = ReadBody(dataInputStream);
+            Log.d("ReadSession","body len:"+bodylen);
+            if (bodylen > 0) {
+                int sip;
+                String atomid = ReadStringFromStream(dataInputStream, 4);
+                Log.d("ReadSession","in ipsr:"+atomid);
+                //if (atomid == "IPSR") {
+                if(atomid.compareTo("IPSR")==0)
+                {
+                    Log.d("ReadSession","in ipsr");
+                    int len = ReverseInt(dataInputStream.readInt());
+                    sip = dataInputStream.readInt();
+                    SetPeerIp(sip);
+                }
+                atomid = ReadStringFromStream(dataInputStream, 4);
+
+                if(atomid.compareTo("IPDE")==0){
+                    Log.d("ReadSession","in ipde");
+                    int len = ReverseInt(dataInputStream.readInt());
+                    int dip = dataInputStream.readInt();
+                }
+                atomid = ReadStringFromStream(dataInputStream, 4);
+                if(atomid.compareTo("UACT")==0){
+                    Log.d("ReadSession","in uact");
+                    int len = ReverseInt(dataInputStream.readInt());
+                    int action = ReverseShort(dataInputStream.readShort());
+                    HandleAction(action);
+                }
+            }
+        }catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    private void ReadAudio(DataInputStream dataInputStream)
+    {
+        try {
+            byte[] body=new byte[1000];
+            int bufferread=0;
+            int length = ReadBody(dataInputStream);
+            Log.d("ReadAudio","body len:"+length);
+            if (length > 0) {
+                length -= 20;
+                dataInputStream.skipBytes(20);
+
+                while (true) {
+                    if ((bufferread = dataInputStream.read(body, 0, length)) > 0) {
+                        Log.d("ReadAudio","buffer read:"+bufferread);
+                        try {
+                            rl.OnRecieveDataCallback(body, bufferread);
+                        }
+                        catch (Exception e)
+                        {
+                            e.printStackTrace();
+                        }
+                        if (bufferread < length)
+                            length -= bufferread;
+                        else
+                            break;
+                    } else
+                        Thread.sleep(10);
+                }
+            }
+        }catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+
+/*
+
+    static final short USERLIST_HEADER=(short)0x8001;
+    static final short ALIVE_HEADER=(short)0x0001;
+    static final short SESSION_HEADER=(short)0x0002;
+    static final short AUDIO_HEADER=(short)0x0004;
+ */
+
     public void ReceiveFromServer() {
         new Thread() {
             public void run() {
@@ -500,43 +563,38 @@ public class StreamManager implements  SendDataListener{
                         int length = 0;
                         int seq=0;
                         int head = dis.readInt();
-                        Log.i(TAG, "head :" + Integer.toHexString(head));
+                        //Log.i(TAG, "head :" + Integer.toHexString(head));
+                       // short magic=ReverseShort(dis.readShort());
+
 
                         switch (head)
                         {
                             case 0x494d0100:
-                                dis.skipBytes(6);
+                                //dis.skipBytes(6);
+                                /*
                                 retcode+=dis.readByte()&0xff;
                                 retcode+=dis.readByte()&0xff;
-                                Log.i(TAG, "retcode :" + Integer.toHexString(retcode));
+                                */
+                              //  retcode=ReverseShort(dis.readShort());
+                                ReadAlive(dis);
+                                //Log.i(TAG, "retcode :" + Integer.toHexString(retcode));
                                 break;
 
                             case 0x494d0200:
                                 Log.d("aa","dd");
-                                length+=dis.readByte()&0xff;
-                                length+=(dis.readByte()<<8)&0xff00;
-                                length+=(dis.readByte()<<16)&0xff0000;
-                                length+=(dis.readByte()<<24)&0xff000000;
-                                //length-=20;
+                                ReadSession(dis);
+                                /*
+                                length=ReverseInt(dis.readInt());
 
-                                seq+=dis.readByte()&0xff;
-                                seq+=(dis.readByte()&0xff)<<8;
-
-                                retcode+=dis.readByte()&0xff;
-                                retcode+=(dis.readByte()&0xff)<<8;
-
+                                seq=ReverseShort(dis.readShort());
+                                retcode=ReverseShort(dis.readShort());
                              //   if(retcode==1)
                               //      break;
                                 Log.i(TAG, "RespFromServer ,0x494d0200 retcode " + Integer.toHexString(retcode));
                                 Log.i(TAG, "RespFromServer ,0x494d0200 length " + Integer.toHexString(length));
 
                                 if(retcode==0) {
-/*
-                                    dos.writeBytes("UACT");
-                                    dos.writeInt(0x02000000);
-                                    dos.writeByte(action & 0xff);
-                                    dos.writeByte((action & 0xff00) >> 8);
-*/
+
                                 //"IPSR" LEN=4
                                     dis.skipBytes(8);
                                     int sip=dis.readInt();
@@ -545,29 +603,24 @@ public class StreamManager implements  SendDataListener{
                                 //"IPDE" len=4
                                     dis.skipBytes(12);
 
-/*
-                                    dos.writeBytes("UACT");
-                                    dos.writeInt(0x02000000);
-                                    dos.writeByte(action & 0xff);
-                                    dos.writeByte((action & 0xff00) >> 8);
-*/
                                     SetPeerIp(sip);
                                     //mPeerIp=sip;
 
                                     dis.skipBytes(8);
-                                    int action=dis.readByte()&0xff;
-                                    action+=(dis.readByte()&0xff)<<8;
 
+                                    int action=ReverseShort(dis.readShort());
 
                                     HandleAction(action);
 
                                 }
-
+                                */
                             case 0x494d0300:
                                 break;
 
                             case 0x494d0400:
+                                ReadAudio(dis);
                                 // dis.skipBytes(6);
+                                /*
                                 length+=dis.readByte()&0xff;
                                 length+=(dis.readByte()<<8)&0xff00;
                                 length+=(dis.readByte()<<16)&0xff0000;
@@ -583,10 +636,8 @@ public class StreamManager implements  SendDataListener{
                                // Log.i(TAG, "length :" + Integer.toHexString(length)+",seq:"+seq+",retcode:"+retcode);
                                 Log.i(TAG, "RespFromServer,time:" + System.currentTimeMillis() + ",seq:" + seq + ",length :" + Integer.toString(length));
 
-                                /*
-                                if(retcode==1)
-                                    break;
-*/
+
+
                                 if(retcode==0) {
                                     length -= 20;
                                     dis.skipBytes(20);
@@ -615,6 +666,7 @@ public class StreamManager implements  SendDataListener{
                                             Thread.sleep(10);
                                     }
                                 }
+                                */
                                 break;
                             case 0x494d0500:
                                 break;
