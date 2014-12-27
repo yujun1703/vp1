@@ -50,7 +50,4 @@ public class CommonConfig {
     public static final short USER_ACTION_AGREE=0x02;
     public static final short USER_ACTION_REJECT=0x03;
     public static final short USER_ACTION_QUIT=0x04;
-
-
-
 }

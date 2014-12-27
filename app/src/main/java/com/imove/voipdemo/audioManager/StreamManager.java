@@ -233,21 +233,28 @@ public class StreamManager implements  SendDataListener{
 
     public void SetPeerIp(int ip)
     {
-        mPeerIp=ip;
+      //  mPeerIp=ip;
+
+        ByteBuffer buffer = ByteBuffer.allocate(1024);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.putInt(ip);
+        mPeerIp=0;
+        for(int  i=0;i<buffer.position();i++)
+        {
+            mPeerIp=mPeerIp|(((buffer.get(i)&0xff)<<(3-i)*8));
+            //mPeerIp=mPeerIp<<8 + buffer.get(i);
+        }
+        Log.d("aa","ip:"+Integer.toHexString(mPeerIp)+" org ip:"+Integer.toHexString(ip));
+
     }
 
-
+/*
     public synchronized void CreateSession(short action)
     {
         try {
-            if(mSocket.isClosed()==false) {
-                Log.i(TAG, "CreateSession,sendnum:" + sendnum);
+            if(mSocket.isConnected()==true) {
                 dos.writeInt(0x494d0200);
 
-                //长度为10(atom长度)
-                //dos.writeInt(0x0a000000);
-               // int length=10+mname.length();
-               // int length=12+mname.length()+4+4+10;
                 int length=12+10;
 
                 dos.writeByte(length & 0xff);
@@ -258,33 +265,17 @@ public class StreamManager implements  SendDataListener{
                 dos.writeByte(sendnum & 0xff);
                 dos.writeByte((sendnum & 0xff00) >> 8);
 
-                //retcode
                 dos.writeShort(0);
 
-                //////////atom//////
-
-                //12bytes
                 dos.writeBytes("IPDE");
                 dos.writeInt(0x04000000);//dips len =4
-             //   dos.writeInt(destip);
                 dos.writeInt(mPeerIp);
-
-/*
-                //user name
-                dos.writeBytes("NAME");
-                dos.writeByte(mname.length() & 0xff);
-                dos.writeByte((mname.length() & 0xff00) >> 8);
-                dos.writeByte((mname.length() & 0xff0000) >> 16);
-                dos.writeByte((mname.length() & 0xff000000) >> 24);
-                dos.writeBytes(mname);
-*/
 
                 //command 10bytes
                 dos.writeBytes("UACT");
                 dos.writeInt(0x02000000);
                 dos.writeByte(action & 0xff);
                 dos.writeByte((action & 0xff00) >> 8);
-
                 dos.flush();
                 sendnum++;
             }
@@ -294,19 +285,52 @@ public class StreamManager implements  SendDataListener{
             e.printStackTrace();
         }
     }
+*/
 
 
-    public void OnSendDataCallback(byte[] buffer,int bufferLen) {
-  //  public synchronized void SendAudioToServer(int bufferLen,byte[] buffer) {
-        Log.i("RecoderByMediaCodec", "SendToServer,mSocket.isClosed:" + mSocket.isClosed() );
+    public synchronized void CreateSession(short action)
+    {
+        try {
+            if(mSocket.isClosed()==false) {
+                Log.i(TAG, "CreateSession,sendnum:" + sendnum);
+                ByteBuffer buffer = ByteBuffer.allocate(1024);
+                buffer.order(ByteOrder.LITTLE_ENDIAN);
 
-        if(mSocket.isClosed()==true&&mSocket.isConnected()==true)
+                buffer.position(HEADLEN);
+                int len=write_atom_int(buffer,"IPDE",mPeerIp);
+                len+=write_atom_short(buffer,"UACT",action);
+                Log.i(TAG, "CreateSession list atom len :"+len);
+                int pos=buffer.position();
+                buffer.position(0);
+                write_header(buffer,SESSION_HEADER,len);
+
+                for(int i=0;i<pos;++i)
+                {
+                    dos.write(buffer.get(i));
+                }
+                dos.flush();
+                Log.i(TAG, "CreateSession list xxxxxx,seq:"+sendnum+",time:" +System.currentTimeMillis());
+                sendnum++;
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+/*
+    public synchronized void OnSendDataCallback(byte[] sendbuf,int sendbufLen) {
+        Log.i("RecoderByMediaCodec", "SendToServer,buflen:" + sendbufLen );
+
+        if(mSocket.isConnected()==false)
         {
             ConnectHost();
         }
 
-        int bodylen = bufferLen + 20;
+        int bodylen = sendbufLen + 20;
         try {
+
             dos.writeInt(0x494d0400);
 
             dos.writeByte(bodylen & 0xff);
@@ -327,12 +351,12 @@ public class StreamManager implements  SendDataListener{
             dos.writeBytes("MDAT");
 
             //dos.writeInt(bufferReadResult);
-            dos.writeByte(bufferLen & 0xff);
-            dos.writeByte((bufferLen & 0xff00) >> 8);
-            dos.writeByte((bufferLen & 0xff0000) >> 16);
-            dos.writeByte((bufferLen & 0xff000000) >> 24);
+            dos.writeByte(sendbufLen & 0xff);
+            dos.writeByte((sendbufLen & 0xff00) >> 8);
+            dos.writeByte((sendbufLen & 0xff0000) >> 16);
+            dos.writeByte((sendbufLen & 0xff000000) >> 24);
 
-            dos.write(buffer, 0, bufferLen);
+            dos.write(sendbuf, 0, sendbufLen);
             // sendlen += bufferReadResult;
             dos.flush();
         }
@@ -340,7 +364,46 @@ public class StreamManager implements  SendDataListener{
         {
             e.printStackTrace();
         }
-        Log.i(TAG, "SendAudioToServer,body len : "+bodylen);
+        //Log.i(TAG, "SendToServer,time:" + System.currentTimeMillis() + ",seq:" + sendnum);
+    }
+*/
+
+    public void OnSendDataCallback(byte[] sendbuf,int sendbufLen) {
+  //  public synchronized void SendAudioToServer(int bufferLen,byte[] buffer) {
+        Log.i("RecoderByMediaCodec", "SendToServer,mSocket.isClosed:" + mSocket.isClosed() );
+
+        if(mSocket.isClosed()==true&&mSocket.isConnected()==true)
+        {
+            ConnectHost();
+        }
+
+        try {
+
+            ByteBuffer buffer = ByteBuffer.allocate(1024);
+            buffer.order(ByteOrder.LITTLE_ENDIAN);
+            buffer.position(HEADLEN);
+            int len=write_atom_int(buffer,"IPDE",mPeerIp);
+            len+=write_atom_byte(buffer,"MDAT",sendbufLen,sendbuf);
+            Log.i(TAG, "OnSendDataCallback  atom len :"+len);
+            int pos=buffer.position();
+            buffer.position(0);
+            write_header(buffer,AUDIO_HEADER,len);
+
+            for(int i=0;i<pos;++i)
+            {
+                dos.write(buffer.get(i));
+            }
+            dos.flush();
+            Log.i(TAG, "OnSendDataCallback  xxxxxx,seq:"+sendnum+",time:" +System.currentTimeMillis());
+            sendnum++;
+
+
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+       // Log.i(TAG, "SendAudioToServer,body len : "+bodylen);
     }
 
     /*
@@ -488,7 +551,8 @@ public class StreamManager implements  SendDataListener{
                                     dos.writeByte(action & 0xff);
                                     dos.writeByte((action & 0xff00) >> 8);
 */
-                                    mPeerIp=sip;
+                                    SetPeerIp(sip);
+                                    //mPeerIp=sip;
 
                                     dis.skipBytes(8);
                                     int action=dis.readByte()&0xff;
