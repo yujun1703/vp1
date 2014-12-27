@@ -17,7 +17,7 @@ import com.imove.voipdemo.ChatFragment;
 import android.os.Build;
 
 import com.imove.voipdemo.R;
-import com.imove.voipdemo.audioManager.ServerSocket;
+import com.imove.voipdemo.audioManager.StreamManager;
 import com.imove.voipdemo.dummy.DummyContent;
 
 public class ListActivity extends Activity implements ItemListFragment.OnFragmentInteractionListener,ChatFragment.OnChatFragmentInteractionListener
@@ -42,7 +42,7 @@ public class ListActivity extends Activity implements ItemListFragment.OnFragmen
         DummyContent.DummyItem item=DummyContent.getItem(id);
         int ip=item.ip;
         Log.d("aa","onFragmentInteraction,ip:"+ip);
-        ServerSocket ss=ServerSocket.getServerSocketInstance();
+        StreamManager ss=StreamManager.getServerSocketInstance();
         ss.SetPeerIp(ip);
 
         getFragmentManager().beginTransaction()

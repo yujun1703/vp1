@@ -16,9 +16,8 @@ import android.widget.ArrayAdapter;
 import android.widget.ListAdapter;
 import android.widget.TextView;
 
-import com.imove.voipdemo.audioManager.ServerSocket;
-import com.imove.voipdemo.dummy.FriendContent;
-import com.imove.voipdemo.dummy.FriendItem;
+import com.imove.voipdemo.audioManager.AudioEncoder;
+import com.imove.voipdemo.audioManager.StreamManager;
 import com.imove.voipdemo.dummy.DummyContent;
 
 /**
@@ -41,7 +40,6 @@ public class ItemListFragment extends Fragment implements AbsListView.OnItemClic
     private String mParam1;
     private String mParam2;
 
-    private FriendContent friendContent;
     private Handler mHandler;
 
 
@@ -93,7 +91,7 @@ public class ItemListFragment extends Fragment implements AbsListView.OnItemClic
                 android.R.layout.simple_list_item_1, android.R.id.text1, DummyContent.ITEMS);
 
 
-        ServerSocket ss=ServerSocket.getServerSocketInstance();
+        StreamManager ss=StreamManager.getServerSocketInstance();
         mHandler=new UIHandler();
         ss.setUserListUpdate(mAdapter,mHandler);
 
@@ -114,6 +112,11 @@ public class ItemListFragment extends Fragment implements AbsListView.OnItemClic
                 case 1:
                    Intent intent=new Intent(getActivity(),SessionActivity.class);
                    startActivity(intent);
+                case 2:
+                    AudioEncoder recoderByMediaCodec=new AudioEncoder();
+                    recoderByMediaCodec.SetOnSendDataListener(StreamManager.getServerSocketInstance());
+                    recoderByMediaCodec.prepare();
+                    recoderByMediaCodec.startRecord();
             }
 
 

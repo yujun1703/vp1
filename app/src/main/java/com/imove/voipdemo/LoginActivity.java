@@ -30,7 +30,7 @@ import android.widget.TextView;
 
 import com.imove.voipdemo.audioManager.AudioDecoderPlayer;
 
-import com.imove.voipdemo.audioManager.ServerSocket;
+import com.imove.voipdemo.audioManager.StreamManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,7 +70,7 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor>{
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
-    private ServerSocket mServerSocket;
+    private StreamManager mServerSocket;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -323,7 +323,7 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor>{
             }
 */
 
-            mServerSocket=ServerSocket.getServerSocketInstance();
+            mServerSocket=StreamManager.getServerSocketInstance();
             mServerSocket.SetHost("172.16.2.60",8803);
             mServerSocket.ConnectHost();
            // mServerSocket.KeepAliveToServer();
@@ -333,7 +333,10 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor>{
             mServerSocket.SetUserName(mEmail);
 
             AudioDecoderPlayer audioPlayer=new AudioDecoderPlayer();
+            mServerSocket.SetOnRecieveDataListener(audioPlayer);
             audioPlayer.setPlayer();
+
+
 
             for (String credential : DUMMY_CREDENTIALS) {
                 String[] pieces = credential.split(":");

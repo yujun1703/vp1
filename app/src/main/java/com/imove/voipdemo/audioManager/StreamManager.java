@@ -5,33 +5,26 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.widget.ArrayAdapter;
-
 import com.imove.voipdemo.config.CommonConfig;
 import com.imove.voipdemo.dummy.DummyContent;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PipedOutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.concurrent.BlockingDeque;
-
-import android.os.MemoryFile;
-import junit.framework.TestCase;
-
 
 
 /**
  * Created by zhangyun on 14/12/10.
  */
-public class ServerSocket {
+public class StreamManager implements  SendDataListener{
     final String TAG="ServerSocket";
     private Socket mSocket;
     private String mIp;
@@ -45,34 +38,35 @@ public class ServerSocket {
     String mname;
     private  AudioDecoderPlayer mAudioDecoderPlayer;
     private DataOutputStream dos;
-    ConnectionFsm connectionFsm;
+    private RecieveDataListener rl;
 
-    private static ServerSocket mServerSocket=null;
+    private static StreamManager mServerSocket=null;
 
-    public ServerSocket()
+    public StreamManager()
     {
         mSocket = new Socket();
-        connectionFsm=new ConnectionFsm();
     }
-    public  ConnectionFsm getConnectionFsm()
+
+    public void SetOnRecieveDataListener(RecieveDataListener l)
     {
-        return connectionFsm;
+        rl=l;
     }
 
-
-    public synchronized static ServerSocket getServerSocketInstance()
+    public synchronized static StreamManager getServerSocketInstance()
     {
         if(mServerSocket==null)
-            mServerSocket=new ServerSocket();
+            mServerSocket=new StreamManager();
+
 
         return mServerSocket;
     }
 
+    /*
     public void SetAudiaPlayer(AudioDecoderPlayer player)
     {
         mAudioDecoderPlayer=player;
     }
-
+*/
 
     public void SetHost(String ip,int port)
     {
@@ -90,13 +84,12 @@ public class ServerSocket {
     {
         new Thread() {
             public void run() {
-
                 try {
-
                     mSocket.connect(new InetSocketAddress(mIp, mPort), 5000);
                     OutputStream os = mSocket.getOutputStream();
                     BufferedOutputStream bos = new BufferedOutputStream(os);
                     dos = new DataOutputStream(bos);
+
                     KeepAliveToServer();
                     GetUserList();
                     Log.d("aa", "ConnectHost:" + Thread.currentThread().getId());
@@ -107,6 +100,52 @@ public class ServerSocket {
         }.start();
     }
 
+
+    static final short USERLIST_HEADER=(short)0x8001;
+    static final short ALIVE_HEADER=(short)0x0001;
+    static final short SESSION_HEADER=(short)0x0002;
+    static final short AUDIO_HEADER=(short)0x0004;
+
+
+    private int write_atom_byte(ByteBuffer buffer,String id,int len,byte[] data)
+    {
+        buffer.put(id.getBytes());
+        buffer.putInt(len);
+
+        if(len!=0)
+            buffer.put(data,0,len);
+
+        return 8+len;
+    }
+
+    private int write_atom_short(ByteBuffer buffer,String id,short data)
+    {
+        buffer.put(id.getBytes());
+        buffer.putInt(2);
+        buffer.putShort(data);
+        return 10;
+    }
+
+    private int write_atom_int(ByteBuffer buffer,String id,int data)
+    {
+        buffer.put(id.getBytes());
+        buffer.putInt(4);
+        buffer.putInt(data);
+        return 12;
+    }
+
+    static final  int HEADLEN=12;
+    private int write_header(ByteBuffer buffer,short header,int len)
+    {
+        buffer.putShort((short)0x4d49);
+        buffer.putShort((short)header);
+        buffer.putInt(len);
+        buffer.putShort((short)sendnum);
+        buffer.putShort((short)0);//retcode
+        return  0;
+    }
+
+
     public synchronized void GetUserList()
     {
         new Thread() {
@@ -116,36 +155,30 @@ public class ServerSocket {
 
                     while(true) {
 
-                        if (mSocket.isConnected() == true){
-                          //  if (mSocket.isConnected() == true&&DummyContent.isEmpty()==false) {
-                         //   Log.i(TAG, "GetUserList,sendnum:" + sendnum);
-                            dos.writeInt(0x494d0180);
+                        if (mSocket.isClosed()==false){
+                            ByteBuffer buffer = ByteBuffer.allocate(1024);
+                            buffer.order(ByteOrder.LITTLE_ENDIAN);
 
-                            //长度为8(atom长度)
-                            dos.writeInt(0x08000000);
-                            dos.writeByte(sendnum & 0xff);
-                            dos.writeByte((sendnum & 0xff00) >> 8);
+                            buffer.position(HEADLEN);
+                            int len = write_atom_byte(buffer,"IPLS",0,null);
+                            Log.i(TAG, "GetUserList list atom len :"+len);
+                            int pos=buffer.position();
+                            buffer.position(0);
+                            write_header(buffer,USERLIST_HEADER,len);
 
-                            //retcode
-                            dos.writeShort(0);
-
-                            //atom
-                            dos.writeBytes("IPLS");
-                            dos.writeInt(0x0);//STAT len =2
-                            //dos.writeShort(0x0100);
+                            for(int i=0;i<pos;++i)
+                            {
+                                dos.write(buffer.get(i));
+                            }
                             dos.flush();
-
-                        //    Log.i(TAG, "GetUserList list xxxxxx,seq:"+sendnum+",time:" +System.currentTimeMillis());
-
+                            Log.i(TAG, "GetUserList list xxxxxx,seq:"+sendnum+",time:" +System.currentTimeMillis());
                             sendnum++;
-                            //Thread.sleep(30000);
                             Thread.sleep(3000);
                         }
                         else
                         {
                             Thread.sleep(1000);
                         }
-
                     }
 
                 } catch (Exception e) {
@@ -164,42 +197,22 @@ public class ServerSocket {
 
                     while (true) {
 
-                        if(mSocket.isConnected()==true) {
+                        if(mSocket.isClosed()==false) {
+                            Log.i(TAG, "KeepAliveToServer,sendnum:" + sendnum);
+                            ByteBuffer buffer = ByteBuffer.allocate(1024);
+                            buffer.order(ByteOrder.LITTLE_ENDIAN);
 
-                            //Log.i(TAG, "KeepAliveToServer,sendnum:" + sendnum);
-                            dos.writeInt(0x494d0100);
+                            buffer.position(12);
+                            int len=write_atom_short(buffer,"STAT",(short)2);
+                            len+=write_atom_byte(buffer,"NAME",mname.length(),mname.getBytes());
+                            int pos=buffer.position();
+                            buffer.position(0);
+                            write_header(buffer,ALIVE_HEADER,len);
 
-                            //长度为10(atom长度)
-                            //dos.writeInt(0x0a000000);
-                            int length=10+mname.length()+4+4;
-
-                            dos.writeByte(length & 0xff);
-                            dos.writeByte((length & 0xff00) >> 8);
-                            dos.writeByte((length & 0xff0000) >> 16);
-                            dos.writeByte((length & 0xff000000) >> 24);
-
-
-                            dos.writeByte(sendnum & 0xff);
-                            dos.writeByte((sendnum & 0xff00) >> 8);
-
-                            //retcode
-                            dos.writeShort(0);
-
-                            //atom
-                            dos.writeBytes("STAT");
-                            dos.writeInt(0x02000000);//STAT len =2
-                            dos.writeShort(0x0100);
-
-                            //user name
-                            dos.writeBytes("NAME");
-                            //dos.writeInt(name.length());//STAT len =2
-                            dos.writeByte(mname.length() & 0xff);
-                            dos.writeByte((mname.length() & 0xff00) >> 8);
-                            dos.writeByte((mname.length() & 0xff0000) >> 16);
-                            dos.writeByte((mname.length() & 0xff000000) >> 24);
-
-                            dos.writeBytes(mname);
-
+                            for(int i=0;i<pos;++i)
+                            {
+                                dos.write(buffer.get(i));
+                            }
                             dos.flush();
                             sendnum++;
                         }
@@ -215,6 +228,8 @@ public class ServerSocket {
             }
         }.start();
     }
+    //int length=10+mname.length()+4+4;
+
 
     public void SetPeerIp(int ip)
     {
@@ -222,14 +237,11 @@ public class ServerSocket {
     }
 
 
-
-
-
     public synchronized void CreateSession(short action)
     {
         try {
-            if(mSocket.isConnected()==true) {
-                //Log.i(TAG, "KeepAliveToServer,sendnum:" + sendnum);
+            if(mSocket.isClosed()==false) {
+                Log.i(TAG, "CreateSession,sendnum:" + sendnum);
                 dos.writeInt(0x494d0200);
 
                 //长度为10(atom长度)
@@ -254,6 +266,7 @@ public class ServerSocket {
                 //12bytes
                 dos.writeBytes("IPDE");
                 dos.writeInt(0x04000000);//dips len =4
+             //   dos.writeInt(destip);
                 dos.writeInt(mPeerIp);
 
 /*
@@ -280,21 +293,20 @@ public class ServerSocket {
         {
             e.printStackTrace();
         }
-
-
     }
 
-    public synchronized void SendAudioToServer(int bufferLen,byte[] buffer) {
-        Log.i("RecoderByMediaCodec", "SendToServer,buflen:" + bufferLen );
 
-        if(mSocket.isConnected()==false)
+    public void OnSendDataCallback(byte[] buffer,int bufferLen) {
+  //  public synchronized void SendAudioToServer(int bufferLen,byte[] buffer) {
+        Log.i("RecoderByMediaCodec", "SendToServer,mSocket.isClosed:" + mSocket.isClosed() );
+
+        if(mSocket.isClosed()==true&&mSocket.isConnected()==true)
         {
             ConnectHost();
         }
 
         int bodylen = bufferLen + 20;
         try {
-
             dos.writeInt(0x494d0400);
 
             dos.writeByte(bodylen & 0xff);
@@ -328,14 +340,26 @@ public class ServerSocket {
         {
             e.printStackTrace();
         }
-        //Log.i(TAG, "SendToServer,time:" + System.currentTimeMillis() + ",seq:" + sendnum);
+        Log.i(TAG, "SendAudioToServer,body len : "+bodylen);
     }
 
+    /*
     private void readAtom(DataInputStream dis)
     {
 
+        String id=ReadStringFromStream(dis,4);
+        if(id=="STAT")
+        else if(id=="IMTY")
+        else if(id=="IPSR")
+        else if(id=="IPDE")
+        else if(id=="IPLS")
+        else if(id=="MDAT")
+        else if(id=="CVER")
+        else if(id=="NAME")
+        else if(id=="NALS")
+        else if(id=="UACT")
     }
-
+*/
     private String ReadStringFromStream(DataInputStream dis,int len)
     {
         StringBuffer sb = new StringBuffer();
@@ -353,6 +377,38 @@ public class ServerSocket {
         return sb.toString();
     }
 
+    private void HandleAction(int action)
+    {
+        switch (action)
+        {
+            case CommonConfig.USER_ACTION_REQUEST:
+                if (mUIHandler != null) {
+                    Log.i(TAG, "RespFromServer ,0x494d0200 ,sendmassage to list");
+
+                    Message msg = new Message();
+                    msg.what = 1;
+                    mUIHandler.sendMessage(msg);
+                }
+                break;
+            case CommonConfig.USER_ACTION_AGREE:
+                Log.i(TAG, "RespFromServer ,0x494d0200 ,USER_ACTION_AGREE");
+                //    AudioDecoderPlayer audioPlayer=new AudioDecoderPlayer();
+                //    audioPlayer.setPlayer();
+                Message msg = new Message();
+                msg.what = 2;
+                mUIHandler.sendMessage(msg);
+
+                //  RecoderByMediaCodec recoderByMediaCodec=new RecoderByMediaCodec();
+                //  recoderByMediaCodec.prepare();
+                //  recoderByMediaCodec.startRecord();
+
+                break;
+            case CommonConfig.USER_ACTION_REJECT:
+                break;
+            case CommonConfig.USER_ACTION_QUIT:
+                break;
+        }
+    }
 
     public void ReceiveFromServer() {
         new Thread() {
@@ -362,7 +418,7 @@ public class ServerSocket {
                 try {
                     while(true)
                     {
-                        if(mSocket.isConnected())
+                        if(mSocket.isClosed()==false&&mSocket.isConnected()==true)
                         {
                             break;
                         }
@@ -408,55 +464,39 @@ public class ServerSocket {
 
                              //   if(retcode==1)
                               //      break;
+                                Log.i(TAG, "RespFromServer ,0x494d0200 retcode " + Integer.toHexString(retcode));
+                                Log.i(TAG, "RespFromServer ,0x494d0200 length " + Integer.toHexString(length));
 
                                 if(retcode==0) {
-
-                                    Log.i(TAG, "RespFromServer ,0x494d0200 retcode" + Integer.toHexString(retcode));
-
 /*
                                     dos.writeBytes("UACT");
                                     dos.writeInt(0x02000000);
                                     dos.writeByte(action & 0xff);
                                     dos.writeByte((action & 0xff00) >> 8);
 */
-
                                 //"IPSR" LEN=4
                                     dis.skipBytes(8);
                                     int sip=dis.readInt();
-                                    Log.i(TAG, "RespFromServer ,ssip:"+sip);
+                                    Log.i(TAG, "RespFromServer ,0x494d0200，ssip:"+Integer.toHexString(sip));
 
                                 //"IPDE" len=4
                                     dis.skipBytes(12);
 
-
 /*
                                     dos.writeBytes("UACT");
                                     dos.writeInt(0x02000000);
                                     dos.writeByte(action & 0xff);
                                     dos.writeByte((action & 0xff00) >> 8);
 */
+                                    mPeerIp=sip;
 
                                     dis.skipBytes(8);
                                     int action=dis.readByte()&0xff;
                                     action+=(dis.readByte()&0xff)<<8;
 
-                                    switch (action)
-                                    {
-                                        case CommonConfig.USER_ACTION_REQUEST:
-                                            if (mUIHandler != null) {
-                                                Log.i(TAG, "RespFromServer ,sendmassage to list");
-                                                Message msg = new Message();
-                                                msg.what = 1;
-                                                mUIHandler.sendMessage(msg);
-                                            }
-                                            break;
-                                        case CommonConfig.USER_ACTION_AGREE:
-                                            break;
-                                        case CommonConfig.USER_ACTION_REJECT:
-                                            break;
-                                        case CommonConfig.USER_ACTION_QUIT:
-                                            break;
-                                    }
+
+                                    HandleAction(action);
+
                                 }
 
                             case 0x494d0300:
@@ -479,27 +519,37 @@ public class ServerSocket {
                                // Log.i(TAG, "length :" + Integer.toHexString(length)+",seq:"+seq+",retcode:"+retcode);
                                 Log.i(TAG, "RespFromServer,time:" + System.currentTimeMillis() + ",seq:" + seq + ",length :" + Integer.toString(length));
 
+                                /*
                                 if(retcode==1)
                                     break;
+*/
+                                if(retcode==0) {
+                                    length -= 20;
+                                    dis.skipBytes(20);
 
-                                length-=20;
-                                dis.skipBytes(20);
+                                    while (true) {
+                                        if ((bufferread = dis.read(body, 0, length)) > 0) {
 
-                                while (true) {
-                                    if ((bufferread = dis.read(body, 0, length)) > 0) {
+                                            //pipedOutputStream.write(body, 0, bufferread);
+                                            //pipedOutputStream.flush();
+                                            //feedandplay(body);
+                                            Log.i(TAG, "RespFromServer,write to pipe,len:" + bufferread);
+                                            Log.i(TAG, "RespFromServer,write to pipe,length:" + length);
+                                            try {
+                                                rl.OnRecieveDataCallback(body, bufferread);
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                e.printStackTrace();
+                                            }
 
-                                        //pipedOutputStream.write(body, 0, bufferread);
-                                        //pipedOutputStream.flush();
-                                        //feedandplay(body);
-                                        Log.i(TAG, "RespFromServer,write to pipe,len:" +bufferread);
-                                        mAudioDecoderPlayer.FeedAndPlay(body,bufferread);
-
-                                        if (bufferread < length)
-                                            length -= bufferread;
-                                        else
-                                            break;
-                                    } else
-                                        Thread.sleep(10);
+                                            if (bufferread < length)
+                                                length -= bufferread;
+                                            else
+                                                break;
+                                        } else
+                                            Thread.sleep(10);
+                                    }
                                 }
                                 break;
                             case 0x494d0500:
@@ -551,7 +601,8 @@ public class ServerSocket {
                                 for(int i=0;i<atomsize;i+=4)
                                 {
                                     int nameleng=0;
-                                    StringBuffer sb = new StringBuffer();
+                                    //StringBuffer sb = new StringBuffer();
+
                                     dis.skipBytes(4);//"NAME"
 
                                     nameleng+=dis.readByte()&0xff;
@@ -560,15 +611,19 @@ public class ServerSocket {
                                     nameleng+=(dis.readByte()<<24)&0xff000000;
                                     Log.i(TAG, "resp ip list len:" + Integer.toHexString(nameleng));
 
+                                    String sb = ReadStringFromStream(dis,nameleng);
+
+                                    /*
                                     for(int j=0;j<nameleng;j++)
                                     {
                                        // sb.append(dis.read());
                                         sb.append(String.format("%c",dis.read()));
                                     }
+                                    */
 
-                                    Log.i(TAG, "resp ip list name:" + sb.toString());
+                                    Log.i(TAG, "resp ip list name:" + sb);
 
-                                    DummyContent.DummyItem item=new DummyContent.DummyItem(Integer.toString(i) ,sb.toString(),ip[i]);
+                                    DummyContent.DummyItem item=new DummyContent.DummyItem(Integer.toString(i) ,sb,ip[i]);
 
                                     if(DummyContent.haveItem(item)==false) {
                                         DummyContent.addItem(item);

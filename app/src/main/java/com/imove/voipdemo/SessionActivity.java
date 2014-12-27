@@ -10,11 +10,18 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AbsoluteLayout;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.imove.voipdemo.R;
-import com.imove.voipdemo.audioManager.ServerSocket;
-import com.imove.voipdemo.audioManager.SocketHeader;
+import com.imove.voipdemo.audioManager.AudioDecoderPlayer;
+import com.imove.voipdemo.audioManager.AudioEncoder;
+import com.imove.voipdemo.audioManager.StreamManager;
+
 import com.imove.voipdemo.config.CommonConfig;
 
 public class SessionActivity extends Activity {
@@ -31,20 +38,44 @@ public class SessionActivity extends Activity {
         if(intent.getSerializableExtra("send")!=null)
         {
             //ServerSocket.getServerSocketInstance().getConnectionFsm().
-            ServerSocket.getServerSocketInstance().CreateSession(CommonConfig.USER_ACTION_REQUEST);
+            StreamManager.getServerSocketInstance().CreateSession(CommonConfig.USER_ACTION_REQUEST);
+
+
+            FrameLayout frameLayout=new FrameLayout(this);
+
+
+            setContentView(frameLayout);
+            Button btn1 = new Button(this);
+            btn1.setText("正在呼叫xxx");
+            FrameLayout.LayoutParams pp=new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+          //  btn1.setId(1);
+
+            frameLayout.addView(btn1,pp);
         }
         else {
 
             Dialog dialog = new AlertDialog.Builder(this).setTitle("新的来电").setMessage("是否接受xxx的来电？").setPositiveButton("接受", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
-                            Log.d("aa", "bb");
+                            //Log.d("aa", "bb");
+                            StreamManager.getServerSocketInstance().CreateSession(CommonConfig.USER_ACTION_AGREE);
+
+
+                          //  AudioDecoderPlayer audioPlayer=new AudioDecoderPlayer();
+                          //  audioPlayer.setPlayer();
+
+
+                            AudioEncoder recoderByMediaCodec=new AudioEncoder();
+                            recoderByMediaCodec.SetOnSendDataListener(StreamManager.getServerSocketInstance());
+                            recoderByMediaCodec.prepare();
+                            recoderByMediaCodec.startRecord();
+
                         }
                     }
             ).setNegativeButton("拒绝", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    Log.d("aa", "cc");
+                    StreamManager.getServerSocketInstance().CreateSession(CommonConfig.USER_ACTION_REJECT);
                 }
             }).create();
             dialog.show();

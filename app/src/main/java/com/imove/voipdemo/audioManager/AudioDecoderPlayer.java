@@ -1,47 +1,30 @@
 package com.imove.voipdemo.audioManager;
 
-import android.media.AudioFormat;
 import android.media.AudioManager;
-import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
-import android.media.MediaExtractor;
 import android.media.MediaFormat;
-import android.media.MediaMuxer;
-import android.media.MediaRecorder;
 import android.util.Log;
-
 import com.imove.voipdemo.config.CommonConfig;
-
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PipedInputStream;
-import java.net.DatagramPacket;
-import java.net.Socket;
 import java.nio.ByteBuffer;
 
 /**
  * Created by zhangyun on 14/12/18.
  */
-public class AudioDecoderPlayer {
+
+public class AudioDecoderPlayer implements RecieveDataListener{
     MediaCodec decoder=null;
     static int sampleRateInHz = CommonConfig.sampleRateInHz;
     static int channelConfig = CommonConfig.channeloutConfig;
     static int audioFormat = CommonConfig.audioFormat;
-  //  static int bufferSizeInBytes = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat)*2;
     static int bitrate=CommonConfig.bitrate;
-
     static int channelCount=CommonConfig.getChannels(channelConfig);
-
-
 
     AudioTrack player;
     public AudioDecoderPlayer()
     {
         Log.d("AudioDecoderPlayer", "aaaa");
-
         decoder = MediaCodec.createDecoderByType(CommonConfig.mediaType);
         MediaFormat format = new MediaFormat();
         format.setString(MediaFormat.KEY_MIME, CommonConfig.mediaType);//aac raw
@@ -64,7 +47,7 @@ public class AudioDecoderPlayer {
         if (player.getState() == AudioTrack.STATE_INITIALIZED)
         {
             //设置回调，收到数据立即解码并播放
-            ServerSocket.getServerSocketInstance().SetAudiaPlayer(this);
+            //StreamManager.getServerSocketInstance().SetOnRecieveDataListener(this);
             player.play();
             return true;
         }
@@ -74,7 +57,8 @@ public class AudioDecoderPlayer {
         }
     }
 
-    public void FeedAndPlay(byte[] data,int len)
+   // public void FeedAndPlay(byte[] data,int len)
+    public void OnRecieveDataCallback(byte[] data,int len)
     {
         ByteBuffer inputBuffer;
         ByteBuffer outputBuffer;
@@ -93,7 +77,6 @@ public class AudioDecoderPlayer {
         int outputBufferIndex = decoder.dequeueOutputBuffer(bufferInfo, 0);
 
         while (outputBufferIndex >= 0) {
-
             outputBuffer = outputBuffers[outputBufferIndex];
             byte[] outData = new byte[bufferInfo.size];//pcm
             outputBuffer.get(outData);
@@ -106,8 +89,8 @@ public class AudioDecoderPlayer {
 
             decoder.releaseOutputBuffer(outputBufferIndex, false);
             outputBufferIndex = decoder.dequeueOutputBuffer(bufferInfo, 0);
-
         }
     }
+
 
 }

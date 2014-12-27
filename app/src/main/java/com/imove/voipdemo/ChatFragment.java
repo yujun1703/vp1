@@ -12,8 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
-import com.imove.voipdemo.audioManager.FdManager;
-import com.imove.voipdemo.audioManager.RecoderByMediaCodec;
+import com.imove.voipdemo.audioManager.AudioEncoder;
 
 
 import java.lang.String;
@@ -45,8 +44,8 @@ public class ChatFragment extends Fragment {
     public Button mVoiceBtn;
     public Button mStopBtn;
 
-    private RecoderByMediaCodec recoderByMediaCodec;
-    private FdManager mFdManager;
+    private AudioEncoder recoderByMediaCodec;
+
     /**
      * Use this factory method to create a new instance of
      * this fragment using the provided parameters.
@@ -84,7 +83,7 @@ public class ChatFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view =  inflater.inflate(R.layout.fragment_chat, container, false);
 
-        mFdManager=new FdManager();
+
        // mFdManager.SetHost("172.16.2.32",9000);
         mVoiceBtn=(Button)view.findViewById(R.id.sayButton);
         /*

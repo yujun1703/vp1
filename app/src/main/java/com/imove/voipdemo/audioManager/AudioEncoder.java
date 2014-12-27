@@ -4,28 +4,16 @@ import android.media.AudioRecord;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
-import android.media.MediaMuxer;
 import android.media.MediaRecorder;
-import android.os.Environment;
 import android.util.Log;
-
 import com.imove.voipdemo.config.CommonConfig;
-
-import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.Socket;
 import java.nio.ByteBuffer;
 
 /**
  * Created by zhangyun on 14/12/18.
  */
-public class RecoderByMediaCodec {
+public class AudioEncoder {
     private MediaCodec mediaCodec;
     private long  timestamps=0;
     private long  starttimestamps=0;
@@ -35,18 +23,12 @@ public class RecoderByMediaCodec {
     static int sampleRateInHz = CommonConfig.sampleRateInHz;
     static int channelConfig = CommonConfig.channelinConfig;
     static int audioFormat = CommonConfig.audioFormat;
-
     static int bufferSizeInBytes = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat)*2;
-
-
     static int channelCount=CommonConfig.getChannels(channelConfig);
-
     boolean isplaying;
     AudioRecord audioRecord ;
-    /*
-    public RecoderByMediaCodec() {
-    }
-    */
+
+    SendDataListener sl;
 
     public void prepare()
     {
@@ -78,10 +60,6 @@ public class RecoderByMediaCodec {
                 audioRecord.startRecording();
                 starttimestamps=System.nanoTime() ;
 
-                //audioRecord.setRecordPositionUpdateListener(new )
-
-
-
                 byte[] Data = new byte[bufferSizeInBytes];
                 int len;
 
@@ -110,8 +88,17 @@ public class RecoderByMediaCodec {
         }
     }
 
+    int sendDatalen=0;
+    byte[] sendData = new byte[1000];
+
+    public void SetOnSendDataListener(SendDataListener l)
+    {
+        sl=l;
+    }
+
     public synchronized void offerEncoder(byte[] input,int length) {
         Log.d("AudioEncoder", length + " is coming");
+
         try {
             int inputBufferIndex = mediaCodec.dequeueInputBuffer(-1);
             if (inputBufferIndex >= 0) {
@@ -135,10 +122,20 @@ public class RecoderByMediaCodec {
                     Log.e("AudioEncoder", outData.length + " bytes  will be  written");
                     outputBuffer.get(outData);
                     outputBuffer.clear();
-                    ServerSocket.getServerSocketInstance().SendAudioToServer(outData.length, outData);
 
-                    mediaCodec.releaseOutputBuffer(outputBufferIndex, false);
-                    outputBufferIndex = mediaCodec.dequeueOutputBuffer(bufferInfo, 0);
+
+                    if(sendDatalen<20)
+                    {
+                        System.arraycopy(outData,0,sendData,sendDatalen,outData.length);
+                        sendDatalen+=outData.length;
+                        mediaCodec.releaseOutputBuffer(outputBufferIndex, false);
+                        outputBufferIndex = mediaCodec.dequeueOutputBuffer(bufferInfo, 0);
+                        continue;
+                    }
+                    sl.OnSendDataCallback(sendData,sendDatalen);
+                   // ServerSocket.getServerSocketInstance().SendAudioToServer(sendDatalen, sendData);
+                    //ServerSocket.getServerSocketInstance().SendAudioToServer(outData.length, outData);
+                    sendDatalen=0;
 
                 }
             }else if (outputBufferIndex == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
@@ -153,5 +150,7 @@ public class RecoderByMediaCodec {
         }
 
     }
+
+
 
 }
