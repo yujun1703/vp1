@@ -5,6 +5,9 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.rtp.AudioCodec;
+import android.net.rtp.AudioStream;
+import android.net.rtp.RtpStream;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -32,6 +35,9 @@ public class SessionActivity extends Activity {
         setContentView(R.layout.activity_session);
 
         Intent intent = this.getIntent();
+       // AudioCodec
+       // RtpStream
+      //  AudioStream
 
         String a=(String)intent.getSerializableExtra("send");
         Log.d("aa","intent ddd:"+a);

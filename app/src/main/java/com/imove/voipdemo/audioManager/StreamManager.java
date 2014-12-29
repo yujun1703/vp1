@@ -6,7 +6,6 @@ import android.os.Message;
 import android.util.Log;
 import android.widget.ArrayAdapter;
 
-import com.google.android.gms.internal.dc;
 import com.imove.voipdemo.config.CommonConfig;
 import com.imove.voipdemo.dummy.DummyContent;
 import java.io.BufferedInputStream;
@@ -235,7 +234,9 @@ public class StreamManager implements  SendDataListener{
     public void SetPeerIp(int ip)
     {
 
-        mPeerIp=ReverseInt(ip);
+        mPeerIp=ip;
+        //
+        // ReverseInt(ip);
     }
 
     private int ReverseInt(int in)
@@ -372,9 +373,6 @@ public class StreamManager implements  SendDataListener{
                 msg.what = 2;
                 mUIHandler.sendMessage(msg);
 
-                //  RecoderByMediaCodec recoderByMediaCodec=new RecoderByMediaCodec();
-                //  recoderByMediaCodec.prepare();
-                //  recoderByMediaCodec.startRecord();
 
                 break;
             case CommonConfig.USER_ACTION_REJECT:
@@ -384,50 +382,6 @@ public class StreamManager implements  SendDataListener{
         }
     }
 
-    /*
-
-     private void readAtom(DataInputStream dis)
-     {
-
-         String id=ReadStringFromStream(dis,4);
-         if(id=="IMTY")
-         {
-
-         }
-         else if(id=="IPSR")
-         {
-             int sip=dis.readInt();
-         }
-         else if(id=="IPDE")
-         {
-
-         }
-         else if(id=="IPLS")
-         {
-
-         }
-         else if(id=="MDAT")
-         {
-
-         }
-         else if(id=="CVER")
-         {
-
-         }
-         else if(id=="NAME")
-         {
-
-         }
-         else if(id=="NALS")
-         {
-
-         }
-         else if(id=="UACT")
-         {
-
-         }
-     }
-    */
     private int ReadBody(DataInputStream dataInputStream)
     {
         try {
@@ -448,6 +402,62 @@ public class StreamManager implements  SendDataListener{
         return 0;
     }
 
+    private void ReadUserList(DataInputStream dataInputStream) {
+        int retcode = ReadBody(dataInputStream);
+        try {
+            if (retcode == -11) {
+
+                String atomid = ReadStringFromStream(dataInputStream, 4);
+                if (atomid.compareTo("IPLS") == 0) {
+                    int atomsize = ReverseInt(dataInputStream.readInt());
+                    int[] ip = new int[atomsize];
+                    for (int i = 0; i < atomsize; i += 4) {
+                        ip[i] = ReverseInt(dataInputStream.readInt());
+                        Log.i(TAG, "resp ip list:" + Integer.toHexString(ip[i]));
+                    }
+
+                    dataInputStream.skipBytes(8);
+
+                    //更新用户名
+                    for (int i = 0; i < atomsize; i += 4) {
+                        int nameleng = 0;
+                        //StringBuffer sb = new StringBuffer();
+                        atomid = ReadStringFromStream(dataInputStream, 4);
+                        if (atomid.compareTo("NAME") == 0) {
+                            nameleng = ReverseInt(dataInputStream.readInt());
+                        }
+
+                        String sb = ReadStringFromStream(dataInputStream, nameleng);
+
+                        Log.i(TAG, "resp ip list name:" + sb);
+
+                        DummyContent.DummyItem item = new DummyContent.DummyItem(Integer.toString(i), sb, ip[i]);
+
+                        if (DummyContent.haveItem(item) == false) {
+                            DummyContent.addItem(item);
+                        }
+                    }
+
+                    //更新列表
+                    Runnable mRunnable = new Runnable() {
+                        @Override
+                        public void run() {
+                            mArrayAdapter.notifyDataSetChanged();
+                        }
+                    };
+
+                    if (mUIHandler != null)
+                        mUIHandler.post(mRunnable);
+
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
     private int ReadAlive(DataInputStream dataInputStream)
     {
         return ReadBody(dataInputStream);
@@ -463,12 +473,11 @@ public class StreamManager implements  SendDataListener{
                 int sip;
                 String atomid = ReadStringFromStream(dataInputStream, 4);
                 Log.d("ReadSession","in ipsr:"+atomid);
-                //if (atomid == "IPSR") {
                 if(atomid.compareTo("IPSR")==0)
                 {
                     Log.d("ReadSession","in ipsr");
                     int len = ReverseInt(dataInputStream.readInt());
-                    sip = dataInputStream.readInt();
+                    sip=ReverseInt(dataInputStream.readInt());
                     SetPeerIp(sip);
                 }
                 atomid = ReadStringFromStream(dataInputStream, 4);
@@ -476,7 +485,7 @@ public class StreamManager implements  SendDataListener{
                 if(atomid.compareTo("IPDE")==0){
                     Log.d("ReadSession","in ipde");
                     int len = ReverseInt(dataInputStream.readInt());
-                    int dip = dataInputStream.readInt();
+                    int dip=ReverseInt(dataInputStream.readInt());
                 }
                 atomid = ReadStringFromStream(dataInputStream, 4);
                 if(atomid.compareTo("UACT")==0){
@@ -528,13 +537,6 @@ public class StreamManager implements  SendDataListener{
     }
 
 
-/*
-
-    static final short USERLIST_HEADER=(short)0x8001;
-    static final short ALIVE_HEADER=(short)0x0001;
-    static final short SESSION_HEADER=(short)0x0002;
-    static final short AUDIO_HEADER=(short)0x0004;
- */
 
     public void ReceiveFromServer() {
         new Thread() {
@@ -555,118 +557,25 @@ public class StreamManager implements  SendDataListener{
                     BufferedInputStream bis = new BufferedInputStream(is);
                     DataInputStream dis = new DataInputStream(bis);
 
-                    byte[] body = new byte[buffersize];
-                    int bufferread;
 
                     while(true) {
-                        int retcode=0;
-                        int length = 0;
-                        int seq=0;
+
                         int head = dis.readInt();
-                        //Log.i(TAG, "head :" + Integer.toHexString(head));
-                       // short magic=ReverseShort(dis.readShort());
 
 
                         switch (head)
                         {
                             case 0x494d0100:
-                                //dis.skipBytes(6);
-                                /*
-                                retcode+=dis.readByte()&0xff;
-                                retcode+=dis.readByte()&0xff;
-                                */
-                              //  retcode=ReverseShort(dis.readShort());
                                 ReadAlive(dis);
-                                //Log.i(TAG, "retcode :" + Integer.toHexString(retcode));
                                 break;
 
                             case 0x494d0200:
-                                Log.d("aa","dd");
                                 ReadSession(dis);
-                                /*
-                                length=ReverseInt(dis.readInt());
-
-                                seq=ReverseShort(dis.readShort());
-                                retcode=ReverseShort(dis.readShort());
-                             //   if(retcode==1)
-                              //      break;
-                                Log.i(TAG, "RespFromServer ,0x494d0200 retcode " + Integer.toHexString(retcode));
-                                Log.i(TAG, "RespFromServer ,0x494d0200 length " + Integer.toHexString(length));
-
-                                if(retcode==0) {
-
-                                //"IPSR" LEN=4
-                                    dis.skipBytes(8);
-                                    int sip=dis.readInt();
-                                    Log.i(TAG, "RespFromServer ,0x494d0200，ssip:"+Integer.toHexString(sip));
-
-                                //"IPDE" len=4
-                                    dis.skipBytes(12);
-
-                                    SetPeerIp(sip);
-                                    //mPeerIp=sip;
-
-                                    dis.skipBytes(8);
-
-                                    int action=ReverseShort(dis.readShort());
-
-                                    HandleAction(action);
-
-                                }
-                                */
                             case 0x494d0300:
                                 break;
 
                             case 0x494d0400:
                                 ReadAudio(dis);
-                                // dis.skipBytes(6);
-                                /*
-                                length+=dis.readByte()&0xff;
-                                length+=(dis.readByte()<<8)&0xff00;
-                                length+=(dis.readByte()<<16)&0xff0000;
-                                length+=(dis.readByte()<<24)&0xff000000;
-                                //length-=20;
-
-                                seq+=dis.readByte()&0xff;
-                                seq+=(dis.readByte()&0xff)<<8;
-
-                                retcode+=dis.readByte()&0xff;
-                                retcode+=(dis.readByte()&0xff)<<8;
-
-                               // Log.i(TAG, "length :" + Integer.toHexString(length)+",seq:"+seq+",retcode:"+retcode);
-                                Log.i(TAG, "RespFromServer,time:" + System.currentTimeMillis() + ",seq:" + seq + ",length :" + Integer.toString(length));
-
-
-
-                                if(retcode==0) {
-                                    length -= 20;
-                                    dis.skipBytes(20);
-
-                                    while (true) {
-                                        if ((bufferread = dis.read(body, 0, length)) > 0) {
-
-                                            //pipedOutputStream.write(body, 0, bufferread);
-                                            //pipedOutputStream.flush();
-                                            //feedandplay(body);
-                                            Log.i(TAG, "RespFromServer,write to pipe,len:" + bufferread);
-                                            Log.i(TAG, "RespFromServer,write to pipe,length:" + length);
-                                            try {
-                                                rl.OnRecieveDataCallback(body, bufferread);
-                                            }
-                                            catch (Exception e)
-                                            {
-                                                e.printStackTrace();
-                                            }
-
-                                            if (bufferread < length)
-                                                length -= bufferread;
-                                            else
-                                                break;
-                                        } else
-                                            Thread.sleep(10);
-                                    }
-                                }
-                                */
                                 break;
                             case 0x494d0500:
                                 break;
@@ -676,89 +585,8 @@ public class StreamManager implements  SendDataListener{
                                 break;
 
                             case 0x494d0180:
-                                length+=dis.readByte()&0xff;
-                                length+=(dis.readByte()<<8)&0xff00;
-                                length+=(dis.readByte()<<16)&0xff0000;
-                                length+=(dis.readByte()<<24)&0xff000000;
-                                //length-=20
-                                seq+=dis.readByte()&0xff;
-                                seq+=(dis.readByte()&0xff)<<8;
-                               // Log.i(TAG, "resp ip list xxxxxx,seq:"+seq+",time:" +System.currentTimeMillis());
-                                retcode+=dis.readByte()&0xff;
-                                retcode+=(dis.readByte()&0xff)<<8;
-                                Log.i(TAG, "ip list length:" + length);
-                                if(length==0)
-                                    break;
 
-                                int id = dis.readInt();//"IPLS"
-                                int atomsize=0;
-
-                                atomsize+=dis.readByte()&0xff;
-                                atomsize+=(dis.readByte()<<8)&0xff00;
-                                atomsize+=(dis.readByte()<<16)&0xff0000;
-                                atomsize+=(dis.readByte()<<24)&0xff000000;
-
-                                Log.i(TAG, "ip list size:" + atomsize);
-                                int[] ip=new int[atomsize];
-                                for(int i=0;i<atomsize;i+=4) {
-                                    ip[i] = dis.readInt();
-                                    Log.i(TAG, "resp ip list:" + Integer.toHexString(ip[i]));
-                                    /*
-                                    DummyContent.DummyItem item=new DummyContent.DummyItem(Integer.toString(i) ,Integer.toString(ip[i]),ip[i]);
-
-                                    if(DummyContent.haveItem(item)==false) {
-                                        DummyContent.addItem(item);
-                                    }
-                                    */
-                                }
-
-                                dis.skipBytes(8);
-                                //更新用户名
-                                for(int i=0;i<atomsize;i+=4)
-                                {
-                                    int nameleng=0;
-                                    //StringBuffer sb = new StringBuffer();
-
-                                    dis.skipBytes(4);//"NAME"
-
-                                    nameleng+=dis.readByte()&0xff;
-                                    nameleng+=(dis.readByte()<<8)&0xff00;
-                                    nameleng+=(dis.readByte()<<16)&0xff0000;
-                                    nameleng+=(dis.readByte()<<24)&0xff000000;
-                                    Log.i(TAG, "resp ip list len:" + Integer.toHexString(nameleng));
-
-                                    String sb = ReadStringFromStream(dis,nameleng);
-
-                                    /*
-                                    for(int j=0;j<nameleng;j++)
-                                    {
-                                       // sb.append(dis.read());
-                                        sb.append(String.format("%c",dis.read()));
-                                    }
-                                    */
-
-                                    Log.i(TAG, "resp ip list name:" + sb);
-
-                                    DummyContent.DummyItem item=new DummyContent.DummyItem(Integer.toString(i) ,sb,ip[i]);
-
-                                    if(DummyContent.haveItem(item)==false) {
-                                        DummyContent.addItem(item);
-                                    }
-                                    //name[i]=dis.readChars(nameleng);
-                                }
-
-                                //更新列表
-                                Runnable mRunnable = new Runnable()
-                                {
-                                    @Override
-                                    public void run() {
-                                        mArrayAdapter.notifyDataSetChanged();
-                                    }
-                                };
-
-                                if(mUIHandler!=null)
-                                    mUIHandler.post(mRunnable);
-
+                                ReadUserList(dis);
                                 break;
 
                             default:

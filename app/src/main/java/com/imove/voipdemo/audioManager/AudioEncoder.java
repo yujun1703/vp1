@@ -1,10 +1,12 @@
 package com.imove.voipdemo.audioManager;
+import android.annotation.TargetApi;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.media.MediaRecorder;
+import android.os.Build;
 import android.util.Log;
 import com.imove.voipdemo.config.CommonConfig;
 import java.io.DataOutputStream;
@@ -13,6 +15,7 @@ import java.nio.ByteBuffer;
 /**
  * Created by zhangyun on 14/12/18.
  */
+@TargetApi(Build.VERSION_CODES.CUPCAKE)
 public class AudioEncoder {
     private MediaCodec mediaCodec;
     private long  timestamps=0;
